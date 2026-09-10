@@ -1016,9 +1016,9 @@
             const student = window.csvDataMurid.find(d => d.nama === childName);
             let html = '<option value="">-- Sila Pilih Nama Tuan/Puan --</option>';
             if (student) {
-                if (student.bapa && student.bapa !== "-" && student.bapa.toUpperCase() !== "TIADA") html += `<option value="${student.bapa}" data-relation="Bapa">Bapa: ${student.bapa}</option>`;
-                if (student.ibu && student.ibu !== "-" && student.ibu.toUpperCase() !== "TIADA") html += `<option value="${student.ibu}" data-relation="Ibu">Ibu: ${student.ibu}</option>`;
-                if (student.penjaga && student.penjaga !== "-" && student.penjaga.toUpperCase() !== "TIADA") html += `<option value="${student.penjaga}" data-relation="Penjaga">Penjaga: ${student.penjaga}</option>`;
+                if (student.bapa && student.bapa !== "-" && student.bapa.toUpperCase() !== "TIADA") html += `<option value="${student.bapa}" data-relation="Bapa">${student.bapa}</option>`;
+                if (student.ibu && student.ibu !== "-" && student.ibu.toUpperCase() !== "TIADA") html += `<option value="${student.ibu}" data-relation="Ibu">${student.ibu}</option>`;
+                if (student.penjaga && student.penjaga !== "-" && student.penjaga.toUpperCase() !== "TIADA") html += `<option value="${student.penjaga}" data-relation="Penjaga">${student.penjaga}</option>`;
             }
             html += `<option value="LAIN-LAIN" data-relation="Lain-lain">Lain-lain (Sila Nyatakan)</option>`;
             parentSelect.innerHTML = html; parentSelect.disabled = false; document.getElementById('attRelation').value = 'Bapa';
