@@ -11,6 +11,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
+        /* Style untuk native dropdown <details> */
+        details > summary { list-style: none; }
+        details > summary::-webkit-details-marker { display: none; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-full flex flex-col justify-between">
@@ -41,7 +44,7 @@
         <nav class="bg-blue-950 px-4 overflow-x-auto">
             <div class="max-w-7xl mx-auto flex gap-1 md:gap-4 py-2 whitespace-nowrap">
                 <button onclick="switchTab('utama')" id="tab-utama" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-blue-800 text-white transition">Laman Utama</button>
-                <button onclick="switchTab('carta')" id="tab-carta" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-blue-200 hover:bg-blue-900 transition">Carta Organisasi</button>
+                <button onclick="switchTab('carta')" id="tab-carta" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-blue-200 hover:bg-blue-900 transition">AJK PIBG</button>
                 <button onclick="switchTab('galeri')" id="tab-galeri" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-blue-200 hover:bg-blue-900 transition">Galeri Sumbangan</button>
                 <button onclick="switchTab('laporan')" id="tab-laporan" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-blue-200 hover:bg-blue-900 transition">Senarai Laporan</button>
                 <button onclick="switchTab('kehadiran')" id="tab-kehadiran" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-blue-200 hover:bg-blue-900 transition">Kehadiran Program</button>
@@ -51,7 +54,6 @@
     </header>
 
     <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 relative">
-        <!-- Firebase Status Indicator -->
         <div id="syncStatus" class="absolute top-0 right-4 md:right-6 bg-blue-100 text-blue-700 text-[10px] px-2 py-1 rounded-b-lg flex items-center gap-1">
             <i class="fa-solid fa-cloud-arrow-down fa-fade"></i> Menyambung ke Pelayan...
         </div>
@@ -114,17 +116,18 @@
             </div>
         </section>
 
+        <!-- SECTION AJK PIBG (DAHULU CARTA ORGANISASI) -->
         <section id="section-carta" class="space-y-6 tab-content hidden">
             <div class="flex justify-between items-center">
                 <div>
-                    <h2 class="text-2xl font-bold text-slate-800">Carta Organisasi PIBG</h2>
+                    <h2 class="text-2xl font-bold text-slate-800">Senarai AJK PIBG</h2>
                     <p class="text-sm text-slate-500">Sesi Penggal 2025/2026 SK Pendidikan Khas Miri</p>
                 </div>
                 <button onclick="openAddAjkModal()" id="btnTambahAjk" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow transition items-center gap-2">
                     <i class="fa-solid fa-user-plus"></i> Tambah AJK
                 </button>
             </div>
-            <div class="space-y-8" id="cartaContainer"></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="cartaContainer"></div>
         </section>
 
         <section id="section-galeri" class="space-y-6 tab-content hidden">
@@ -134,7 +137,7 @@
                     <p class="text-sm text-slate-500">Rekod visual sumbangan dan aktiviti PIBG</p>
                 </div>
                 <button onclick="openAddGaleriModal()" id="btnTambahGaleri" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow transition items-center gap-2">
-                    <i class="fa-solid fa-cloud-arrow-up"></i> Muat Naik Gambar
+                    <i class="fa-solid fa-link"></i> Tambah Sumbangan
                 </button>
             </div>
             <div id="galeriGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
@@ -147,7 +150,7 @@
                     <p class="text-sm text-slate-500">Muat turun laporan aktiviti dan kewangan PDF PIBG</p>
                 </div>
                 <button onclick="openAddLaporanModal()" id="btnTambahLaporan" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow transition items-center gap-2">
-                    <i class="fa-solid fa-file-arrow-up"></i> Muat Naik Laporan
+                    <i class="fa-solid fa-link"></i> Tambah Laporan
                 </button>
             </div>
             <div id="laporanGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
@@ -206,48 +209,83 @@
         </div>
     </div>
 
-    <!-- MODAL: TAMBAH SUMBANGAN / GALERI (FILE UPLOAD) -->
+    <!-- MODAL: TAMBAH AJK -->
+    <div id="ajkModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button onclick="closeAddAjkModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-user-plus text-blue-600"></i> Tambah AJK PIBG</h3>
+            <form onsubmit="saveAjk(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Penuh</label>
+                    <input type="text" id="ajkNama" placeholder="Cth: En. Mohamad Faizal bin Abdullah" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Jawatan</label>
+                    <input type="text" id="ajkJawatan" placeholder="Cth: YDP, AJK Ibu Bapa, Setiausaha" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Kategori</label>
+                    <select id="ajkKategori" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+                        <option value="Pengurusan">Pengurusan</option>
+                        <option value="Guru">Guru</option>
+                        <option value="Ibu Bapa">Ibu Bapa</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Pautan Gambar (URL)</label>
+                    <input type="url" id="ajkImgUrl" placeholder="https://..." class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+                    <p class="text-[10px] text-slate-500 mt-1">Kosongkan jika tiada gambar. Sistem akan papar ikon lalai.</p>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeAddAjkModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-sm font-medium">Batal</button>
+                    <button type="submit" id="btnSubmitAjk" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center gap-2">Simpan AJK</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: TAMBAH SUMBANGAN / GALERI (URL ONLY) -->
     <div id="galeriModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
             <button onclick="closeAddGaleriModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
-            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-cloud-arrow-up text-blue-600"></i> Muat Naik Gambar</h3>
+            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-link text-blue-600"></i> Pautan Gambar Sumbangan</h3>
             <form onsubmit="saveGaleri(event)" class="space-y-4">
                 <input type="text" id="galeriTitle" placeholder="Tajuk Sumbangan" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
                 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Fail Gambar</label>
-                    <input type="file" id="galeriFileInput" accept="image/*" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Pautan Gambar (URL)</label>
+                    <input type="url" id="galeriImgUrl" placeholder="Cth: https://pautan-gambar.com/img.jpg" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
                 </div>
 
                 <textarea id="galeriCaption" rows="3" placeholder="Keterangan / Caption Penuh" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"></textarea>
                 
                 <div class="flex justify-end gap-3 pt-2">
                     <button type="button" onclick="closeAddGaleriModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-sm font-medium">Batal</button>
-                    <button type="submit" id="btnSubmitGaleri" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center gap-2">Muat Naik & Simpan</button>
+                    <button type="submit" id="btnSubmitGaleri" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center gap-2">Simpan Pautan</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL: TAMBAH LAPORAN PDF (FILE UPLOAD) -->
+    <!-- MODAL: TAMBAH LAPORAN PDF (URL ONLY) -->
     <div id="laporanModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
             <button onclick="closeAddLaporanModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
-            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-file-pdf text-red-600"></i> Muat Naik Laporan PDF</h3>
+            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-link text-red-600"></i> Pautan Laporan PDF</h3>
             <form onsubmit="saveLaporan(event)" class="space-y-4">
                 <input type="text" id="laporanTitle" placeholder="Tajuk Laporan" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
                 <input type="text" id="laporanDate" placeholder="Tarikh / Sesi (Cth: 15 Jan 2026)" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
                 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Fail PDF</label>
-                    <input type="file" id="laporanFileInput" accept="application/pdf" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Pautan PDF (URL)</label>
+                    <input type="url" id="laporanPdfUrl" placeholder="Cth: https://pautan-laporan.com/file.pdf" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
                 </div>
 
                 <textarea id="laporanCaption" rows="2" placeholder="Ringkasan kandungan..." required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"></textarea>
                 
                 <div class="flex justify-end gap-3 pt-2">
                     <button type="button" onclick="closeAddLaporanModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-sm font-medium">Batal</button>
-                    <button type="submit" id="btnSubmitLaporan" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center gap-2">Muat Naik</button>
+                    <button type="submit" id="btnSubmitLaporan" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center gap-2">Simpan Pautan</button>
                 </div>
             </form>
         </div>
@@ -275,7 +313,7 @@
         </div>
     </div>
 
-    <!-- MODAL: BORANG KEHADIRAN (DIKEMASKINI DGN KATEGORI) -->
+    <!-- MODAL: BORANG KEHADIRAN (LOCKED - TIDAK DIUBAH) -->
     <div id="attendanceFormModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeAttendanceModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -422,9 +460,8 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-        // Konfigurasi Firebase Anda
+        // Konfigurasi Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyB8f2A2Wvs7cDEodgzzhMJbSgBEehVDoYw",
             authDomain: "pibg-11b4b.firebaseapp.com",
@@ -438,28 +475,26 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const storage = getStorage(app);
 
-        // Path standard sistem untuk koleksi data
+        // Path standard sistem
         const BASE_PATH = 'artifacts/pibg_skpk_miri_live/public/data';
         const colAjk = collection(db, BASE_PATH, 'ajk');
         const colGaleri = collection(db, BASE_PATH, 'galeri');
         const colLaporan = collection(db, BASE_PATH, 'laporan');
         const colProgram = collection(db, BASE_PATH, 'program');
 
-        // Global State System
+        // Global State
         window.appData = {
             isAdmin: localStorage.getItem('pibg_skpk_admin') === 'true',
             ajk: [], galeri: [], laporan: [], program: []
         };
         
-        window.csvDataMurid = []; // Data ibu bapa/murid
+        window.csvDataMurid = []; 
         window.senaraiKelas = new Set();
-        window.csvDataGuru = []; // Data guru/akp
+        window.csvDataGuru = []; 
+        window.currentProgramMuridId = null;
 
-        window.currentProgramMuridId = null; // Menyimpan ID untuk modal checklist admin
-
-        // Fungsi Autentikasi & Listener (Live Update)
+        // Init & Realtime Listeners
         async function initFirebase() {
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
@@ -476,14 +511,11 @@
                         window.updateAdminUI();
                     }
                 } else {
-                    // Log masuk automatik sebagai pengguna awam jika tiada sesi
-                    try {
-                        await signInAnonymously(auth);
-                    } catch (error) {
+                    try { await signInAnonymously(auth); } 
+                    catch (error) {
                         console.error("Firebase Auth Error:", error);
                         document.getElementById('syncStatus').innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Ralat Penyambungan';
-                        document.getElementById('syncStatus').classList.replace('bg-blue-100', 'bg-red-100');
-                        document.getElementById('syncStatus').classList.replace('text-blue-700', 'text-red-700');
+                        document.getElementById('syncStatus').className = 'absolute top-0 right-4 md:right-6 bg-red-100 text-red-700 text-[10px] px-2 py-1 rounded-b-lg flex items-center gap-1 font-bold';
                     }
                 }
             });
@@ -493,27 +525,23 @@
             onSnapshot(colAjk, (snapshot) => {
                 window.appData.ajk = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderCarta();
-            }, (err) => console.error("AJK Sync Error:", err));
-
+            });
             onSnapshot(colGaleri, (snapshot) => {
                 window.appData.galeri = snapshot.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => b.timestamp - a.timestamp);
                 renderGaleri();
-            }, (err) => console.error("Galeri Sync Error:", err));
-
+            });
             onSnapshot(colLaporan, (snapshot) => {
                 window.appData.laporan = snapshot.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => b.timestamp - a.timestamp);
                 renderLaporan();
-            }, (err) => console.error("Laporan Sync Error:", err));
-
+            });
             onSnapshot(colProgram, (snapshot) => {
                 window.appData.program = snapshot.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => b.timestamp - a.timestamp);
                 renderAllStats();
                 renderKehadiranProgram();
                 renderPibks();
-            }, (err) => console.error("Program Sync Error:", err));
+            });
         }
 
-        // Helper: Pemisah data CSV
         function parseCSVRow(str) {
             let result = [];
             let insideQuote = false;
@@ -528,9 +556,8 @@
             return result;
         }
 
-        // Mengambil Data CSV dari Pautan Awam
         window.fetchAllCSV = async function() {
-            // 1. Fetch CSV Murid & Ibu Bapa
+            // Fetch Murid
             try {
                 const resMurid = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vQFsuZPA_3aQ5EVdcj9e9GRUOyMbN7XMOT_eGCtSo-SOE4jtuAtY8DU-aMCPuuSbSdH5xELvxRWAPI9/pub?output=csv');
                 const textMurid = await resMurid.text();
@@ -575,9 +602,9 @@
                     document.getElementById('attKelas').innerHTML = optionsHtml;
                     document.getElementById('filterKelasMurid').innerHTML = filterMuridHtml;
                 }
-            } catch (err) { console.error("CSV Murid Error", err); }
+            } catch (err) {}
 
-            // 2. Fetch CSV Guru / AKP
+            // Fetch Guru
             try {
                 const resGuru = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vSdF191iBW-AeowPV7V7Y8cOtViagbtuIkf4GivqTWFpxApaA9K9EuIcD5cot664hNH8vcHqOsxvJU2/pub?output=csv');
                 const textGuru = await resGuru.text();
@@ -594,26 +621,8 @@
                 let gHtml = '<option value="">-- Sila Pilih Nama Guru / AKP --</option>';
                 window.csvDataGuru.sort().forEach(g => { gHtml += `<option value="${g}">${g}</option>`; });
                 document.getElementById('attGuruSelect').innerHTML = gHtml;
-            } catch(err) { console.error("CSV Guru Error", err); }
+            } catch(err) {}
         };
-
-        // Fungsi Muat Naik Fail ke Storage
-        async function uploadFileToStorage(file, folderName) {
-            if(!file) return null;
-            const fileRef = ref(storage, `${folderName}/${Date.now()}_${file.name}`);
-            const uploadTask = uploadBytesResumable(fileRef, file);
-            
-            return new Promise((resolve, reject) => {
-                uploadTask.on('state_changed', 
-                    (snapshot) => {}, 
-                    (error) => reject(error), 
-                    async () => {
-                        const url = await getDownloadURL(uploadTask.snapshot.ref);
-                        resolve(url);
-                    }
-                );
-            });
-        }
 
         window.switchTab = function(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
@@ -637,7 +646,7 @@
             setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
         };
 
-        // Logik Log Masuk Admin
+        // Admin Auth
         window.openAdminModal = () => {
             if (window.appData.isAdmin) return window.showToast("Anda sudah berada dalam Mod Admin!");
             document.getElementById('adminModal').classList.remove('hidden');
@@ -652,22 +661,16 @@
             const btn = e.target.querySelector('button[type="submit"]');
             
             if (pwd === 'YBA4112') {
-                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Mengesahkan...`;
-                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Mengesahkan...`; btn.disabled = true;
                 try {
                     await signInWithEmailAndPassword(auth, "admin@pibgskpk.com", pwd);
-                    window.appData.isAdmin = true;
-                    localStorage.setItem('pibg_skpk_admin', 'true');
-                    window.closeAdminModal();
-                    window.updateAdminUI();
-                    window.showToast("Berjaya log masuk sebagai Admin!");
+                    window.appData.isAdmin = true; localStorage.setItem('pibg_skpk_admin', 'true');
+                    window.closeAdminModal(); window.updateAdminUI(); window.showToast("Berjaya log masuk sebagai Admin!");
                 } catch (error) {
-                    console.error("Ralat Auth:", error);
-                    document.getElementById('loginErrorMsg').innerText = "Ralat: Akaun admin belum didaftarkan di Firebase Console.";
+                    document.getElementById('loginErrorMsg').innerText = "Ralat pelayan. Sila cuba lagi.";
                     document.getElementById('loginErrorMsg').classList.remove('hidden');
                 }
-                btn.innerHTML = `Sahkan & Masuk`;
-                btn.disabled = false;
+                btn.innerHTML = `Sahkan & Masuk`; btn.disabled = false;
             } else {
                 document.getElementById('loginErrorMsg').innerText = "Kata laluan salah! Sila cuba lagi.";
                 document.getElementById('loginErrorMsg').classList.remove('hidden');
@@ -677,13 +680,9 @@
         window.logoutAdmin = async () => {
             try {
                 await signOut(auth);
-                window.appData.isAdmin = false;
-                localStorage.removeItem('pibg_skpk_admin');
-                window.updateAdminUI();
-                window.showToast("Keluar dari Mod Admin.", true);
-            } catch(e) {
-                console.error(e);
-            }
+                window.appData.isAdmin = false; localStorage.removeItem('pibg_skpk_admin');
+                window.updateAdminUI(); window.showToast("Keluar dari Mod Admin.", true);
+            } catch(e) {}
         };
 
         window.updateAdminUI = () => {
@@ -703,22 +702,12 @@
             window.renderCarta(); window.renderGaleri(); window.renderLaporan(); window.renderKehadiranProgram(); window.renderPibks();
         };
 
-        // Logik Custom Modal Pengesahan Pemadaman Data
         let confirmActionCb = null;
         window.openConfirmModal = (msg, cb) => {
-            document.getElementById('confirmModalMsg').innerText = msg;
-            confirmActionCb = cb;
-            document.getElementById('confirmModal').classList.remove('hidden');
+            document.getElementById('confirmModalMsg').innerText = msg; confirmActionCb = cb; document.getElementById('confirmModal').classList.remove('hidden');
         };
-        window.closeConfirmModal = () => {
-            confirmActionCb = null;
-            document.getElementById('confirmModal').classList.add('hidden');
-        };
-        document.getElementById('confirmModalBtn').addEventListener('click', () => {
-            if(confirmActionCb) confirmActionCb();
-            window.closeConfirmModal();
-        });
-
+        window.closeConfirmModal = () => { confirmActionCb = null; document.getElementById('confirmModal').classList.add('hidden'); };
+        document.getElementById('confirmModalBtn').addEventListener('click', () => { if(confirmActionCb) confirmActionCb(); window.closeConfirmModal(); });
 
         window.renderAllStats = () => {
             document.getElementById('statAjk').innerText = window.appData.ajk.length;
@@ -728,12 +717,15 @@
         };
 
         window.renderCarta = () => {
-            let html = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
+            if (window.appData.ajk.length === 0) return document.getElementById('cartaContainer').innerHTML = `<div class="col-span-full text-center py-10 text-slate-400 text-sm">Tiada senarai AJK didaftarkan.</div>`;
+            let html = '';
             window.appData.ajk.forEach(item => {
                 html += `
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
                         <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-800 font-bold flex items-center justify-center text-lg"><i class="fa-solid fa-user-tie"></i></div>
+                            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-800 font-bold flex items-center justify-center text-lg overflow-hidden shrink-0 border border-blue-100">
+                                ${item.imgUrl ? `<img src="${item.imgUrl}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><i class="fa-solid fa-user-tie hidden"></i>` : `<i class="fa-solid fa-user-tie"></i>`}
+                            </div>
                             <div>
                                 <span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-semibold">${item.jawatan}</span>
                                 <h4 class="text-base font-bold text-slate-800 mt-1">${item.nama}</h4>
@@ -743,12 +735,12 @@
                         ${window.appData.isAdmin ? `<button onclick="deleteAjk('${item.id}')" class="text-red-500 hover:text-red-700 p-2"><i class="fa-solid fa-trash"></i></button>` : ''}
                     </div>`;
             });
-            document.getElementById('cartaContainer').innerHTML = html + `</div>`;
+            document.getElementById('cartaContainer').innerHTML = html;
         };
 
         window.renderGaleri = () => {
             const grid = document.getElementById('galeriGrid');
-            if (window.appData.galeri.length === 0) return grid.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400 text-sm">Tiada gambar sumbangan dimuat naik buat masa ini.</div>`;
+            if (window.appData.galeri.length === 0) return grid.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400 text-sm">Tiada gambar sumbangan.</div>`;
             let html = '';
             window.appData.galeri.forEach(item => {
                 html += `
@@ -756,7 +748,7 @@
                         ${window.appData.isAdmin ? `<button onclick="deleteGaleri('${item.id}')" class="absolute top-2 right-2 z-10 bg-red-600 hover:bg-red-700 text-white w-8 h-8 rounded-full flex items-center justify-center shadow text-xs"><i class="fa-solid fa-trash"></i></button>` : ''}
                         <div>
                             <div class="h-48 overflow-hidden bg-slate-100 relative border-b border-slate-100">
-                                <img src="${item.imgUrl}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" onerror="this.src='https://placehold.co/600x400/e2e8f0/475569?text=Gambar+Sumbangan'">
+                                <img src="${item.imgUrl}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" onerror="this.src='https://placehold.co/600x400/e2e8f0/475569?text=Gambar+Gagal+Dimuat'">
                             </div>
                             <div class="p-4">
                                 <h4 class="font-bold text-slate-800 text-sm mb-1">${item.title}</h4>
@@ -836,33 +828,28 @@
                 const catMurid = arr.filter(x => x.kategori === 'Murid');
                 const total = arr.length;
 
-                const genIbuBapaTable = () => {
-                    if(!catIbuBapa.length) return `<p class="text-xs text-slate-400 italic mb-4">Tiada rekod ibu bapa / penjaga.</p>`;
-                    let tb = `<div class="overflow-x-auto rounded-lg border border-slate-200 mb-4"><table class="w-full text-left text-[11px] text-slate-700 whitespace-nowrap"><thead class="bg-slate-50"><tr><th class="px-3 py-2 border-b">Nama Penjaga</th><th class="px-3 py-2 border-b">Nama Murid</th><th class="px-3 py-2 border-b">Kelas</th><th class="px-3 py-2 border-b">No. Tel</th></tr></thead><tbody class="divide-y divide-slate-100 bg-white">`;
-                    catIbuBapa.forEach(x => { tb += `<tr><td class="px-3 py-2 font-semibold">${x.parentName}</td><td class="px-3 py-2">${x.childName}</td><td class="px-3 py-2 text-slate-500">${x.kelas}</td><td class="px-3 py-2 font-mono">${x.phone}</td></tr>`; });
-                    return tb + `</tbody></table></div>`;
-                };
+                const wrapDetails = (title, count, contentHtml) => `
+                    <details class="group mb-3 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                        <summary class="flex justify-between items-center font-bold cursor-pointer list-none px-4 py-3 text-sm text-blue-900 bg-blue-50/50 hover:bg-blue-50 transition">
+                            <span>${title} (${count})</span>
+                            <span class="transition group-open:rotate-180 text-blue-600"><i class="fa-solid fa-chevron-down"></i></span>
+                        </summary>
+                        <div class="p-4 bg-white border-t border-slate-100 text-xs">
+                            ${contentHtml}
+                        </div>
+                    </details>`;
 
-                const genGuruTable = () => {
-                    if(!catGuru.length) return `<p class="text-xs text-slate-400 italic mb-4">Tiada rekod Guru / AKP.</p>`;
-                    let tb = `<div class="overflow-x-auto rounded-lg border border-slate-200 mb-4"><table class="w-full text-left text-[11px] text-slate-700 whitespace-nowrap"><thead class="bg-slate-50"><tr><th class="px-3 py-2 border-b">Nama Guru / AKP</th><th class="px-3 py-2 border-b">Masa Direkodkan</th></tr></thead><tbody class="divide-y divide-slate-100 bg-white">`;
-                    catGuru.forEach(x => { tb += `<tr><td class="px-3 py-2 font-semibold">${x.name}</td><td class="px-3 py-2 text-slate-500">${x.time}</td></tr>`; });
-                    return tb + `</tbody></table></div>`;
-                };
-
-                const genSokonganTable = () => {
-                    if(!catSokongan.length) return `<p class="text-xs text-slate-400 italic mb-4">Tiada rekod Khidmat Sokongan.</p>`;
-                    let tb = `<div class="overflow-x-auto rounded-lg border border-slate-200 mb-4"><table class="w-full text-left text-[11px] text-slate-700 whitespace-nowrap"><thead class="bg-slate-50"><tr><th class="px-3 py-2 border-b">Nama Agensi</th><th class="px-3 py-2 border-b">Nama Wakil Hadir</th></tr></thead><tbody class="divide-y divide-slate-100 bg-white">`;
-                    catSokongan.forEach(x => { tb += `<tr><td class="px-3 py-2 font-bold text-blue-700">${x.agensi}</td><td class="px-3 py-2">${x.wakilNames.join(', ')}</td></tr>`; });
-                    return tb + `</tbody></table></div>`;
-                };
-
-                const genMuridTable = () => {
-                    if(!catMurid.length) return `<p class="text-xs text-slate-400 italic mb-4">Tiada rekod Murid (Ditanda oleh Admin).</p>`;
-                    let tb = `<div class="overflow-x-auto rounded-lg border border-slate-200 mb-4"><table class="w-full text-left text-[11px] text-slate-700 whitespace-nowrap"><thead class="bg-slate-50"><tr><th class="px-3 py-2 border-b">Nama Murid</th><th class="px-3 py-2 border-b">Kelas</th></tr></thead><tbody class="divide-y divide-slate-100 bg-white">`;
-                    catMurid.forEach(x => { tb += `<tr><td class="px-3 py-2 font-semibold">${x.nama}</td><td class="px-3 py-2 text-slate-500">${x.kelas}</td></tr>`; });
-                    return tb + `</tbody></table></div>`;
-                };
+                let htmlIbuBapa = !catIbuBapa.length ? `<p class="text-slate-400 italic">Tiada rekod.</p>` : 
+                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Penjaga</th><th class="pb-2 pr-4">Nama Murid</th><th class="pb-2 pr-4">Kelas</th><th class="pb-2">No. Tel</th></tr></thead><tbody class="divide-y divide-slate-50">` + catIbuBapa.map(x => `<tr><td class="py-2 pr-4 font-semibold">${x.parentName}</td><td class="py-2 pr-4">${x.childName}</td><td class="py-2 pr-4">${x.kelas}</td><td class="py-2">${x.phone}</td></tr>`).join('') + `</tbody></table></div>`;
+                
+                let htmlGuru = !catGuru.length ? `<p class="text-slate-400 italic">Tiada rekod.</p>` : 
+                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Guru / AKP</th><th class="pb-2">Masa Direkodkan</th></tr></thead><tbody class="divide-y divide-slate-50">` + catGuru.map(x => `<tr><td class="py-2 pr-4 font-semibold">${x.name}</td><td class="py-2">${x.time}</td></tr>`).join('') + `</tbody></table></div>`;
+                
+                let htmlSokongan = !catSokongan.length ? `<p class="text-slate-400 italic">Tiada rekod.</p>` : 
+                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Agensi</th><th class="pb-2">Senarai Wakil Hadir</th></tr></thead><tbody class="divide-y divide-slate-50">` + catSokongan.map(x => `<tr><td class="py-2 pr-4 font-bold text-blue-700">${x.agensi}</td><td class="py-2">${x.wakilNames.join(', ')}</td></tr>`).join('') + `</tbody></table></div>`;
+                
+                let htmlMurid = !catMurid.length ? `<p class="text-slate-400 italic">Tiada rekod.</p>` : 
+                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Murid</th><th class="pb-2">Kelas</th></tr></thead><tbody class="divide-y divide-slate-50">` + catMurid.map(x => `<tr><td class="py-2 pr-4 font-semibold">${x.nama}</td><td class="py-2">${x.kelas}</td></tr>`).join('') + `</tbody></table></div>`;
 
                 finalHtml += `
                     <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -878,14 +865,10 @@
                             </div>
                         </button>
                         <div id="pibks-content-${index}" class="hidden pt-4 mt-4 border-t border-slate-100">
-                            <h4 class="text-xs font-bold text-blue-800 bg-blue-50 px-2 py-1 inline-block rounded mb-2">1. Guru / AKP (${catGuru.length})</h4>
-                            ${genGuruTable()}
-                            <h4 class="text-xs font-bold text-blue-800 bg-blue-50 px-2 py-1 inline-block rounded mb-2">2. Khidmat Sokongan / Agensi (${catSokongan.length})</h4>
-                            ${genSokonganTable()}
-                            <h4 class="text-xs font-bold text-blue-800 bg-blue-50 px-2 py-1 inline-block rounded mb-2">3. Ibu Bapa / Penjaga (${catIbuBapa.length})</h4>
-                            ${genIbuBapaTable()}
-                            <h4 class="text-xs font-bold text-blue-800 bg-blue-50 px-2 py-1 inline-block rounded mb-2">4. Murid (${catMurid.length})</h4>
-                            ${genMuridTable()}
+                            ${wrapDetails("1. Guru / AKP", catGuru.length, htmlGuru)}
+                            ${wrapDetails("2. Khidmat Sokongan / Agensi", catSokongan.length, htmlSokongan)}
+                            ${wrapDetails("3. Ibu Bapa / Penjaga", catIbuBapa.length, htmlIbuBapa)}
+                            ${wrapDetails("4. Murid", catMurid.length, htmlMurid)}
                         </div>
                     </div>
                 `;
@@ -900,54 +883,64 @@
             else { content.classList.add('hidden'); icon.classList.remove('rotate-180'); }
         };
 
-        window.openAddAjkModal = () => {
-            const nama = prompt("Masukkan nama AJK baru:"); if (!nama) return;
-            const jawatan = prompt("Masukkan jawatan (Cth: AJK Ibu Bapa):", "AJK"); if (!jawatan) return;
-            const kategori = prompt("Kategori (Ibu Bapa / Guru):", "Ibu Bapa");
-            const newDoc = doc(colAjk);
-            setDoc(newDoc, { jawatan, nama, kategori: kategori || "Ibu Bapa", timestamp: Date.now() });
-            window.showToast("Menyimpan ke pelayan...");
+        // AJK Modals
+        window.openAddAjkModal = () => document.getElementById('ajkModal').classList.remove('hidden');
+        window.closeAddAjkModal = () => { document.getElementById('ajkModal').classList.add('hidden'); };
+        window.saveAjk = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitAjk');
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`; btn.disabled = true;
+            try {
+                const newDoc = doc(colAjk);
+                await setDoc(newDoc, {
+                    nama: document.getElementById('ajkNama').value,
+                    jawatan: document.getElementById('ajkJawatan').value,
+                    kategori: document.getElementById('ajkKategori').value,
+                    imgUrl: document.getElementById('ajkImgUrl').value,
+                    timestamp: Date.now()
+                });
+                window.closeAddAjkModal(); window.showToast("AJK berjaya ditambah!");
+                document.getElementById('ajkNama').value = ''; document.getElementById('ajkJawatan').value = ''; document.getElementById('ajkImgUrl').value = '';
+            } catch(e) { console.error(e); window.showToast("Gagal menambah AJK", true); }
+            btn.innerHTML = `Simpan AJK`; btn.disabled = false;
         };
         window.deleteAjk = (id) => { window.openConfirmModal("Padam maklumat AJK ini?", () => { deleteDoc(doc(colAjk, id)); window.showToast("AJK dipadam."); }); };
 
+        // Galeri Modals (URL)
         window.openAddGaleriModal = () => document.getElementById('galeriModal').classList.remove('hidden');
-        window.closeAddGaleriModal = () => { document.getElementById('galeriModal').classList.add('hidden'); document.getElementById('galeriFileInput').value=''; };
+        window.closeAddGaleriModal = () => { document.getElementById('galeriModal').classList.add('hidden'); };
         window.saveGaleri = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnSubmitGaleri');
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memuat Naik...`; btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`; btn.disabled = true;
             try {
-                const file = document.getElementById('galeriFileInput').files[0];
-                const imgUrl = await uploadFileToStorage(file, "galeri");
-                if(!imgUrl) throw new Error("Gagal dapat link upload");
-
                 const newDoc = doc(colGaleri);
-                await setDoc(newDoc, { title: document.getElementById('galeriTitle').value, imgUrl, caption: document.getElementById('galeriCaption').value, timestamp: Date.now() });
-                window.closeAddGaleriModal(); window.showToast("Gambar berjaya dimuat naik!");
-            } catch(e) { console.error(e); window.showToast("Ralat memuat naik fail.", true); }
-            btn.innerHTML = `Muat Naik & Simpan`; btn.disabled = false;
+                await setDoc(newDoc, { title: document.getElementById('galeriTitle').value, imgUrl: document.getElementById('galeriImgUrl').value, caption: document.getElementById('galeriCaption').value, timestamp: Date.now() });
+                window.closeAddGaleriModal(); window.showToast("Gambar berjaya ditambah!");
+                document.getElementById('galeriTitle').value = ''; document.getElementById('galeriImgUrl').value = ''; document.getElementById('galeriCaption').value = '';
+            } catch(e) { console.error(e); window.showToast("Ralat menyimpan pautan.", true); }
+            btn.innerHTML = `Simpan Pautan`; btn.disabled = false;
         };
         window.deleteGaleri = (id) => { window.openConfirmModal("Padam gambar ini?", () => { deleteDoc(doc(colGaleri, id)); window.showToast("Gambar dipadam."); }); };
 
+        // Laporan Modals (URL)
         window.openAddLaporanModal = () => document.getElementById('laporanModal').classList.remove('hidden');
-        window.closeAddLaporanModal = () => { document.getElementById('laporanModal').classList.add('hidden'); document.getElementById('laporanFileInput').value=''; };
+        window.closeAddLaporanModal = () => { document.getElementById('laporanModal').classList.add('hidden'); };
         window.saveLaporan = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnSubmitLaporan');
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memuat Naik...`; btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`; btn.disabled = true;
             try {
-                const file = document.getElementById('laporanFileInput').files[0];
-                const pdfUrl = await uploadFileToStorage(file, "laporan");
-                if(!pdfUrl) throw new Error("Gagal dapat link upload");
-
                 const newDoc = doc(colLaporan);
-                await setDoc(newDoc, { title: document.getElementById('laporanTitle').value, date: document.getElementById('laporanDate').value, pdfUrl, caption: document.getElementById('laporanCaption').value, timestamp: Date.now() });
+                await setDoc(newDoc, { title: document.getElementById('laporanTitle').value, date: document.getElementById('laporanDate').value, pdfUrl: document.getElementById('laporanPdfUrl').value, caption: document.getElementById('laporanCaption').value, timestamp: Date.now() });
                 window.closeAddLaporanModal(); window.showToast("Laporan PDF berjaya ditambah!");
-            } catch(e) { console.error(e); window.showToast("Ralat memuat naik laporan.", true); }
-            btn.innerHTML = `Muat Naik`; btn.disabled = false;
+                document.getElementById('laporanTitle').value=''; document.getElementById('laporanDate').value=''; document.getElementById('laporanPdfUrl').value=''; document.getElementById('laporanCaption').value='';
+            } catch(e) { console.error(e); window.showToast("Ralat menyimpan pautan.", true); }
+            btn.innerHTML = `Simpan Pautan`; btn.disabled = false;
         };
         window.deleteLaporan = (id) => { window.openConfirmModal("Padam laporan ini?", () => { deleteDoc(doc(colLaporan, id)); window.showToast("Laporan dipadam."); }); };
 
+        // Program Modals
         window.openAddProgramModal = () => document.getElementById('programModal').classList.remove('hidden');
         window.closeAddProgramModal = () => document.getElementById('programModal').classList.add('hidden');
         window.saveProgram = (e) => {
@@ -958,19 +951,18 @@
         };
         window.deleteProgram = (id) => { window.openConfirmModal("Padam program beserta semua kehadirannya?", () => { deleteDoc(doc(colProgram, id)); window.showToast("Program dipadam."); }); };
 
+        // Attendance (LOCKED)
         window.openAttendanceModal = (progId) => {
             const prog = window.appData.program.find(p => p.id === progId);
             if (!prog) return;
             document.getElementById('attendanceProgId').value = prog.id;
             document.getElementById('modalProgTitle').innerText = prog.nama;
             document.getElementById('modalProgInfo').innerText = `Tarikh: ${prog.tarikh} (${prog.hari})`;
-            
             document.getElementById('attCategory').value = '';
             document.getElementById('attForm').classList.add('hidden');
             document.getElementById('catIbuBapa').classList.add('hidden');
             document.getElementById('catGuru').classList.add('hidden');
             document.getElementById('catSokongan').classList.add('hidden');
-            
             document.getElementById('attendanceFormModal').classList.remove('hidden');
         };
         window.closeAttendanceModal = () => document.getElementById('attendanceFormModal').classList.add('hidden');
@@ -1152,7 +1144,7 @@
         window.onload = async function() {
             window.updateAdminUI();
             await window.fetchAllCSV();
-            await initFirebase(); // Mula memuat turun dan pasang sambungan live
+            await initFirebase();
         };
     </script>
 </body>
