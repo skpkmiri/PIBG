@@ -116,7 +116,7 @@
             </div>
         </section>
 
-        <!-- SECTION AJK PIBG (DAHULU CARTA ORGANISASI) -->
+        <!-- SECTION AJK PIBG -->
         <section id="section-carta" class="space-y-6 tab-content hidden">
             <div class="flex justify-between items-center">
                 <div>
@@ -307,13 +307,13 @@
                 <textarea id="progDesc" rows="2" placeholder="Keterangan / Tempat" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"></textarea>
                 <div class="flex justify-end gap-3 pt-2">
                     <button type="button" onclick="closeAddProgramModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-sm font-medium">Batal</button>
-                    <button type="submit" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">Simpan Program</button>
+                    <button type="submit" id="btnSubmitProgram" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">Simpan Program</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL: BORANG KEHADIRAN (LOCKED - TIDAK DIUBAH) -->
+    <!-- MODAL: BORANG KEHADIRAN (LOCKED) -->
     <div id="attendanceFormModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeAttendanceModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -461,7 +461,6 @@
         import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Konfigurasi Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyB8f2A2Wvs7cDEodgzzhMJbSgBEehVDoYw",
             authDomain: "pibg-11b4b.firebaseapp.com",
@@ -476,14 +475,12 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Path standard sistem
         const BASE_PATH = 'artifacts/pibg_skpk_miri_live/public/data';
         const colAjk = collection(db, BASE_PATH, 'ajk');
         const colGaleri = collection(db, BASE_PATH, 'galeri');
         const colLaporan = collection(db, BASE_PATH, 'laporan');
         const colProgram = collection(db, BASE_PATH, 'program');
 
-        // Global State
         window.appData = {
             isAdmin: localStorage.getItem('pibg_skpk_admin') === 'true',
             ajk: [], galeri: [], laporan: [], program: []
@@ -494,7 +491,7 @@
         window.csvDataGuru = []; 
         window.currentProgramMuridId = null;
 
-        // Init & Realtime Listeners
+        // Init & Realtime Listeners (DIBAIKI UNTUK HALANG ADMIN PALSU)
         async function initFirebase() {
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
@@ -505,11 +502,17 @@
                     document.getElementById('syncStatus').innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Live Tersambung';
                     document.getElementById('syncStatus').className = 'absolute top-0 right-4 md:right-6 bg-emerald-100 text-emerald-700 text-[10px] px-2 py-1 rounded-b-lg flex items-center gap-1 font-bold';
                     
+                    // Semak jika bukan Anonymous (bermakna Admin log masuk Email)
                     if (user.isAnonymous === false) {
                         window.appData.isAdmin = true;
                         localStorage.setItem('pibg_skpk_admin', 'true');
-                        window.updateAdminUI();
+                    } else {
+                        // Jika Anonymous, reset status Admin sekiranya wujud di localStorage 
+                        // Ini membaiki isu 'Optimistic UI' (Gagal Upload di Peranti Lain)
+                        window.appData.isAdmin = false;
+                        localStorage.removeItem('pibg_skpk_admin');
                     }
+                    window.updateAdminUI();
                 } else {
                     try { await signInAnonymously(auth); } 
                     catch (error) {
@@ -889,6 +892,7 @@
         window.saveAjk = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnSubmitAjk');
+            const originalText = btn.innerHTML;
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`; btn.disabled = true;
             try {
                 const newDoc = doc(colAjk);
@@ -901,10 +905,14 @@
                 });
                 window.closeAddAjkModal(); window.showToast("AJK berjaya ditambah!");
                 document.getElementById('ajkNama').value = ''; document.getElementById('ajkJawatan').value = ''; document.getElementById('ajkImgUrl').value = '';
-            } catch(e) { console.error(e); window.showToast("Gagal menambah AJK", true); }
-            btn.innerHTML = `Simpan AJK`; btn.disabled = false;
+            } catch(e) { console.error(e); window.showToast("Gagal menambah AJK. Pastikan anda Admin.", true); window.logoutAdmin(); }
+            btn.innerHTML = originalText; btn.disabled = false;
         };
-        window.deleteAjk = (id) => { window.openConfirmModal("Padam maklumat AJK ini?", () => { deleteDoc(doc(colAjk, id)); window.showToast("AJK dipadam."); }); };
+        window.deleteAjk = (id) => { 
+            window.openConfirmModal("Padam maklumat AJK ini?", () => { 
+                deleteDoc(doc(colAjk, id)).then(() => window.showToast("AJK dipadam.")).catch((e) => { console.error(e); window.showToast("Gagal memadam.", true); window.logoutAdmin(); }); 
+            }); 
+        };
 
         // Galeri Modals (URL)
         window.openAddGaleriModal = () => document.getElementById('galeriModal').classList.remove('hidden');
@@ -912,16 +920,21 @@
         window.saveGaleri = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnSubmitGaleri');
+            const originalText = btn.innerHTML;
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`; btn.disabled = true;
             try {
                 const newDoc = doc(colGaleri);
                 await setDoc(newDoc, { title: document.getElementById('galeriTitle').value, imgUrl: document.getElementById('galeriImgUrl').value, caption: document.getElementById('galeriCaption').value, timestamp: Date.now() });
                 window.closeAddGaleriModal(); window.showToast("Gambar berjaya ditambah!");
                 document.getElementById('galeriTitle').value = ''; document.getElementById('galeriImgUrl').value = ''; document.getElementById('galeriCaption').value = '';
-            } catch(e) { console.error(e); window.showToast("Ralat menyimpan pautan.", true); }
-            btn.innerHTML = `Simpan Pautan`; btn.disabled = false;
+            } catch(e) { console.error(e); window.showToast("Ralat menyimpan pautan.", true); window.logoutAdmin(); }
+            btn.innerHTML = originalText; btn.disabled = false;
         };
-        window.deleteGaleri = (id) => { window.openConfirmModal("Padam gambar ini?", () => { deleteDoc(doc(colGaleri, id)); window.showToast("Gambar dipadam."); }); };
+        window.deleteGaleri = (id) => { 
+            window.openConfirmModal("Padam gambar ini?", () => { 
+                deleteDoc(doc(colGaleri, id)).then(() => window.showToast("Gambar dipadam.")).catch((e) => { console.error(e); window.showToast("Gagal memadam.", true); window.logoutAdmin(); }); 
+            }); 
+        };
 
         // Laporan Modals (URL)
         window.openAddLaporanModal = () => document.getElementById('laporanModal').classList.remove('hidden');
@@ -929,27 +942,63 @@
         window.saveLaporan = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnSubmitLaporan');
+            const originalText = btn.innerHTML;
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`; btn.disabled = true;
             try {
                 const newDoc = doc(colLaporan);
                 await setDoc(newDoc, { title: document.getElementById('laporanTitle').value, date: document.getElementById('laporanDate').value, pdfUrl: document.getElementById('laporanPdfUrl').value, caption: document.getElementById('laporanCaption').value, timestamp: Date.now() });
                 window.closeAddLaporanModal(); window.showToast("Laporan PDF berjaya ditambah!");
                 document.getElementById('laporanTitle').value=''; document.getElementById('laporanDate').value=''; document.getElementById('laporanPdfUrl').value=''; document.getElementById('laporanCaption').value='';
-            } catch(e) { console.error(e); window.showToast("Ralat menyimpan pautan.", true); }
-            btn.innerHTML = `Simpan Pautan`; btn.disabled = false;
+            } catch(e) { console.error(e); window.showToast("Ralat menyimpan pautan.", true); window.logoutAdmin(); }
+            btn.innerHTML = originalText; btn.disabled = false;
         };
-        window.deleteLaporan = (id) => { window.openConfirmModal("Padam laporan ini?", () => { deleteDoc(doc(colLaporan, id)); window.showToast("Laporan dipadam."); }); };
+        window.deleteLaporan = (id) => { 
+            window.openConfirmModal("Padam laporan ini?", () => { 
+                deleteDoc(doc(colLaporan, id)).then(() => window.showToast("Laporan dipadam.")).catch((e) => { console.error(e); window.showToast("Gagal memadam.", true); window.logoutAdmin(); }); 
+            }); 
+        };
 
         // Program Modals
         window.openAddProgramModal = () => document.getElementById('programModal').classList.remove('hidden');
         window.closeAddProgramModal = () => document.getElementById('programModal').classList.add('hidden');
-        window.saveProgram = (e) => {
+        
+        // DIBAIKI: Tambah Async / Await untuk mengesan jika Pelayan menolak kemasukan kerana Admin palsu
+        window.saveProgram = async (e) => {
             e.preventDefault();
-            const newDoc = doc(colProgram);
-            setDoc(newDoc, { nama: document.getElementById('progName').value, tarikh: document.getElementById('progDate').value, hari: document.getElementById('progDay').value, deskripsi: document.getElementById('progDesc').value, kehadiran: [], timestamp: Date.now() });
-            window.closeAddProgramModal(); window.showToast("Program berjaya ditambah!");
+            const btn = document.getElementById('btnSubmitProgram');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`; btn.disabled = true;
+            
+            try {
+                const newDoc = doc(colProgram);
+                await setDoc(newDoc, { 
+                    nama: document.getElementById('progName').value, 
+                    tarikh: document.getElementById('progDate').value, 
+                    hari: document.getElementById('progDay').value, 
+                    deskripsi: document.getElementById('progDesc').value, 
+                    kehadiran: [], 
+                    timestamp: Date.now() 
+                });
+                window.closeAddProgramModal(); 
+                window.showToast("Program berjaya ditambah!");
+                
+                // Clear Form
+                document.getElementById('progName').value = '';
+                document.getElementById('progDate').value = '';
+                document.getElementById('progDesc').value = '';
+            } catch(e) {
+                console.error(e);
+                window.showToast("Gagal! Anda perlu log masuk semula sebagai Admin.", true);
+                window.logoutAdmin(); // Buang status admin di browser kerana ianya tidak sah
+            }
+            btn.innerHTML = originalText; btn.disabled = false;
         };
-        window.deleteProgram = (id) => { window.openConfirmModal("Padam program beserta semua kehadirannya?", () => { deleteDoc(doc(colProgram, id)); window.showToast("Program dipadam."); }); };
+        
+        window.deleteProgram = (id) => { 
+            window.openConfirmModal("Padam program beserta semua kehadirannya?", () => { 
+                deleteDoc(doc(colProgram, id)).then(() => window.showToast("Program dipadam.")).catch((e) => { console.error(e); window.showToast("Gagal memadam.", true); window.logoutAdmin(); }); 
+            }); 
+        };
 
         // Attendance (LOCKED)
         window.openAttendanceModal = (progId) => {
@@ -1137,7 +1186,7 @@
                 window.closeMuridModal();
                 window.showToast(`Berjaya mengemaskini ${newMuridRecords.length} rekod murid.`);
             } catch (err) {
-                console.error(err); window.showToast("Gagal menyimpan rekod murid.", true);
+                console.error(err); window.showToast("Gagal menyimpan rekod murid.", true); window.logoutAdmin();
             }
         };
 
