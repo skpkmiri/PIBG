@@ -9,6 +9,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- TAMBAHAN: Library PDF.js untuk papar Thumbnail PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        }
+    </script>
+    
     <style>
         body { font-family: 'Inter', sans-serif; }
         /* Style untuk native dropdown <details> */
@@ -456,6 +465,27 @@
         <span id="toastMsg">Berjaya disimpan!</span>
     </div>
 
+    <!-- TAMBAHAN MODAL: EDIT PIBKS (KHAS UNTUK ADMIN) -->
+    <div id="editPibksModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[65] flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+            <button onclick="closeEditPibksModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-pen-to-square text-amber-500"></i> Kemaskini Rekod Hadir</h3>
+            <form onsubmit="saveEditPibks(event)" class="space-y-4">
+                <input type="hidden" id="editPibksProgId">
+                <input type="hidden" id="editPibksIndex">
+                
+                <div id="editPibksDynamicFields" class="space-y-3">
+                    <!-- Borang dimuatkan secara dinamik mengikut kategori -->
+                </div>
+                
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-2">
+                    <button type="button" onclick="closeEditPibksModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-sm font-medium hover:bg-slate-50 transition">Batal</button>
+                    <button type="submit" class="px-6 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold shadow transition">Kemaskini Rekod</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -771,8 +801,10 @@
                 html += `
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col relative group">
                         ${window.appData.isAdmin ? `<button onclick="deleteLaporan('${item.id}')" class="absolute top-2 right-2 z-10 bg-red-600 hover:bg-red-700 text-white w-8 h-8 rounded-full flex items-center justify-center shadow text-xs"><i class="fa-solid fa-trash"></i></button>` : ''}
-                        <div class="h-40 bg-red-50 flex items-center justify-center relative overflow-hidden border-b border-red-100">
-                            <i class="fa-solid fa-file-pdf text-7xl text-red-300 group-hover:scale-110 group-hover:text-red-400 transition duration-300"></i>
+                        <div class="h-40 bg-slate-100 flex items-center justify-center relative overflow-hidden border-b border-slate-200">
+                            <!-- KANVAS UNTUK PDF THUMBNAIL -->
+                            <canvas id="pdf-canvas-${item.id}" class="w-full h-full object-cover hidden"></canvas>
+                            <i id="pdf-icon-${item.id}" class="fa-solid fa-file-pdf text-7xl text-red-300 group-hover:scale-110 group-hover:text-red-400 transition duration-300"></i>
                         </div>
                         <div class="p-4 flex-grow flex flex-col justify-between">
                             <div>
@@ -787,6 +819,29 @@
                     </div>`;
             });
             grid.innerHTML = html;
+
+            // FUNGSI JANA THUMBNAIL PDF MENGGUNAKAN PDF.JS
+            if (typeof pdfjsLib !== 'undefined') {
+                window.appData.laporan.forEach(item => {
+                    if (item.pdfUrl) {
+                        pdfjsLib.getDocument(item.pdfUrl).promise.then(pdf => {
+                            return pdf.getPage(1);
+                        }).then(page => {
+                            const canvas = document.getElementById(`pdf-canvas-${item.id}`);
+                            const icon = document.getElementById(`pdf-icon-${item.id}`);
+                            if(!canvas) return;
+                            const context = canvas.getContext('2d');
+                            const viewport = page.getViewport({ scale: 1 });
+                            canvas.width = viewport.width;
+                            canvas.height = viewport.height;
+                            page.render({ canvasContext: context, viewport: viewport }).promise.then(() => {
+                                canvas.classList.remove('hidden');
+                                if(icon) icon.classList.add('hidden'); // Sembunyi ikon jika PDF berjaya dimuat
+                            });
+                        }).catch(err => console.log('Gagal menjana thumbnail PDF:', err));
+                    }
+                });
+            }
         };
 
         window.renderKehadiranProgram = () => {
@@ -825,11 +880,22 @@
             let finalHtml = '';
             window.appData.program.forEach((prog, index) => {
                 const arr = prog.kehadiran || [];
-                const catIbuBapa = arr.filter(x => x.kategori === 'Ibu Bapa / Penjaga');
-                const catGuru = arr.filter(x => x.kategori === 'Guru / AKP');
-                const catSokongan = arr.filter(x => x.kategori === 'Khidmat Sokongan');
-                const catMurid = arr.filter(x => x.kategori === 'Murid');
+                // MAP array beserta Original Index untuk memudahkan Edit & Delete
+                const arrWithIndex = arr.map((item, origIdx) => ({...item, origIdx}));
+
+                const catIbuBapa = arrWithIndex.filter(x => x.kategori === 'Ibu Bapa / Penjaga');
+                const catGuru = arrWithIndex.filter(x => x.kategori === 'Guru / AKP');
+                const catSokongan = arrWithIndex.filter(x => x.kategori === 'Khidmat Sokongan');
+                const catMurid = arrWithIndex.filter(x => x.kategori === 'Murid');
                 const total = arr.length;
+
+                // Fungsi Pembantu Butang Tindakan Admin
+                const actTh = window.appData.isAdmin ? `<th class="pb-2 text-right pl-4">Tindakan</th>` : ``;
+                const actTd = (progId, origIdx) => window.appData.isAdmin ? 
+                    `<td class="py-2 text-right pl-4">
+                        <button onclick="editPibksRec('${progId}', ${origIdx})" class="text-amber-500 hover:text-amber-700 px-1" title="Kemaskini"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="deletePibksRec('${progId}', ${origIdx})" class="text-red-500 hover:text-red-700 px-1" title="Padam"><i class="fa-solid fa-trash"></i></button>
+                    </td>` : ``;
 
                 const wrapDetails = (title, count, contentHtml) => `
                     <details class="group mb-3 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
@@ -843,16 +909,16 @@
                     </details>`;
 
                 let htmlIbuBapa = !catIbuBapa.length ? `<p class="text-slate-400 italic">Tiada rekod.</p>` : 
-                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Penjaga</th><th class="pb-2 pr-4">Nama Murid</th><th class="pb-2 pr-4">Kelas</th><th class="pb-2">No. Tel</th></tr></thead><tbody class="divide-y divide-slate-50">` + catIbuBapa.map(x => `<tr><td class="py-2 pr-4 font-semibold">${x.parentName}</td><td class="py-2 pr-4">${x.childName}</td><td class="py-2 pr-4">${x.kelas}</td><td class="py-2">${x.phone}</td></tr>`).join('') + `</tbody></table></div>`;
+                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Penjaga</th><th class="pb-2 pr-4">Nama Murid</th><th class="pb-2 pr-4">Kelas</th><th class="pb-2">No. Tel</th>${actTh}</tr></thead><tbody class="divide-y divide-slate-50">` + catIbuBapa.map(x => `<tr><td class="py-2 pr-4 font-semibold">${x.parentName}</td><td class="py-2 pr-4">${x.childName}</td><td class="py-2 pr-4">${x.kelas}</td><td class="py-2">${x.phone}</td>${actTd(prog.id, x.origIdx)}</tr>`).join('') + `</tbody></table></div>`;
                 
                 let htmlGuru = !catGuru.length ? `<p class="text-slate-400 italic">Tiada rekod.</p>` : 
-                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Guru / AKP</th><th class="pb-2">Masa Direkodkan</th></tr></thead><tbody class="divide-y divide-slate-50">` + catGuru.map(x => `<tr><td class="py-2 pr-4 font-semibold">${x.name}</td><td class="py-2">${x.time}</td></tr>`).join('') + `</tbody></table></div>`;
+                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Guru / AKP</th><th class="pb-2">Masa Direkodkan</th>${actTh}</tr></thead><tbody class="divide-y divide-slate-50">` + catGuru.map(x => `<tr><td class="py-2 pr-4 font-semibold">${x.name}</td><td class="py-2">${x.time}</td>${actTd(prog.id, x.origIdx)}</tr>`).join('') + `</tbody></table></div>`;
                 
                 let htmlSokongan = !catSokongan.length ? `<p class="text-slate-400 italic">Tiada rekod.</p>` : 
-                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Agensi</th><th class="pb-2">Senarai Wakil Hadir</th></tr></thead><tbody class="divide-y divide-slate-50">` + catSokongan.map(x => `<tr><td class="py-2 pr-4 font-bold text-blue-700">${x.agensi}</td><td class="py-2">${x.wakilNames.join(', ')}</td></tr>`).join('') + `</tbody></table></div>`;
+                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Agensi</th><th class="pb-2">Senarai Wakil Hadir</th>${actTh}</tr></thead><tbody class="divide-y divide-slate-50">` + catSokongan.map(x => `<tr><td class="py-2 pr-4 font-bold text-blue-700">${x.agensi}</td><td class="py-2">${(x.wakilNames || []).join(', ')}</td>${actTd(prog.id, x.origIdx)}</tr>`).join('') + `</tbody></table></div>`;
                 
                 let htmlMurid = !catMurid.length ? `<p class="text-slate-400 italic">Tiada rekod.</p>` : 
-                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Murid</th><th class="pb-2">Kelas</th></tr></thead><tbody class="divide-y divide-slate-50">` + catMurid.map(x => `<tr><td class="py-2 pr-4 font-semibold">${x.nama}</td><td class="py-2">${x.kelas}</td></tr>`).join('') + `</tbody></table></div>`;
+                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Murid</th><th class="pb-2">Kelas</th>${actTh}</tr></thead><tbody class="divide-y divide-slate-50">` + catMurid.map(x => `<tr><td class="py-2 pr-4 font-semibold">${x.nama}</td><td class="py-2">${x.kelas}</td>${actTd(prog.id, x.origIdx)}</tr>`).join('') + `</tbody></table></div>`;
 
                 finalHtml += `
                     <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -884,6 +950,103 @@
             const icon = document.getElementById(`pibks-icon-${index}`);
             if (content.classList.contains('hidden')) { content.classList.remove('hidden'); icon.classList.add('rotate-180'); } 
             else { content.classList.add('hidden'); icon.classList.remove('rotate-180'); }
+        };
+
+        // FUNGSI KEMASKINI & PADAM REKOD PIBKS OLEH ADMIN
+        window.deletePibksRec = (progId, origIdx) => {
+            window.openConfirmModal("Padam rekod kehadiran ini dari senarai?", async () => {
+                const prog = window.appData.program.find(p => p.id === progId);
+                if (!prog) return;
+                const updatedKehadiran = [...prog.kehadiran];
+                updatedKehadiran.splice(origIdx, 1); // Buang array pada index tersebut
+                try {
+                    await updateDoc(doc(colProgram, progId), { kehadiran: updatedKehadiran });
+                    window.showToast("Rekod kehadiran berjaya dipadam.");
+                } catch(e) { console.error(e); window.showToast("Ralat memadam rekod.", true); }
+            });
+        };
+
+        window.editPibksRec = (progId, origIdx) => {
+            const prog = window.appData.program.find(p => p.id === progId);
+            if (!prog) return;
+            const rec = prog.kehadiran[origIdx];
+            
+            document.getElementById('editPibksProgId').value = progId;
+            document.getElementById('editPibksIndex').value = origIdx;
+            const container = document.getElementById('editPibksDynamicFields');
+            
+            let html = '';
+            if (rec.kategori === 'Ibu Bapa / Penjaga') {
+                html += `
+                    <div><label class="block text-xs font-semibold text-slate-700 mb-1">Nama Penjaga</label>
+                    <input type="text" id="editPibksParent" value="${rec.parentName || ''}" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></div>
+                    <div><label class="block text-xs font-semibold text-slate-700 mb-1">Nama Anak</label>
+                    <input type="text" id="editPibksChild" value="${rec.childName || ''}" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><label class="block text-xs font-semibold text-slate-700 mb-1">Kelas</label>
+                        <input type="text" id="editPibksKelas" value="${rec.kelas || ''}" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></div>
+                        <div><label class="block text-xs font-semibold text-slate-700 mb-1">No. Telefon</label>
+                        <input type="text" id="editPibksPhone" value="${rec.phone || ''}" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></div>
+                    </div>`;
+            } else if (rec.kategori === 'Guru / AKP') {
+                html += `<div><label class="block text-xs font-semibold text-slate-700 mb-1">Nama Guru / AKP</label>
+                         <input type="text" id="editPibksGuru" value="${rec.name || ''}" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></div>`;
+            } else if (rec.kategori === 'Khidmat Sokongan') {
+                html += `<div><label class="block text-xs font-semibold text-slate-700 mb-1">Nama Agensi</label>
+                         <input type="text" id="editPibksAgensi" value="${rec.agensi || ''}" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></div>
+                         <div><label class="block text-xs font-semibold text-slate-700 mb-1">Wakil Hadir (Pisahkan dengan koma)</label>
+                         <input type="text" id="editPibksWakil" value="${(rec.wakilNames || []).join(', ')}" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></div>`;
+            } else if (rec.kategori === 'Murid') {
+                html += `<div><label class="block text-xs font-semibold text-slate-700 mb-1">Nama Murid</label>
+                         <input type="text" id="editPibksMurid" value="${rec.nama || ''}" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></div>
+                         <div><label class="block text-xs font-semibold text-slate-700 mb-1">Kelas</label>
+                         <input type="text" id="editPibksKelasMurid" value="${rec.kelas || ''}" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></div>`;
+            }
+            
+            container.innerHTML = html;
+            document.getElementById('editPibksModal').classList.remove('hidden');
+        };
+
+        window.closeEditPibksModal = () => document.getElementById('editPibksModal').classList.add('hidden');
+
+        window.saveEditPibks = async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`; btn.disabled = true;
+
+            const progId = document.getElementById('editPibksProgId').value;
+            const origIdx = parseInt(document.getElementById('editPibksIndex').value);
+            const prog = window.appData.program.find(p => p.id === progId);
+            if (!prog) return;
+            
+            const rec = { ...prog.kehadiran[origIdx] }; 
+            
+            if (rec.kategori === 'Ibu Bapa / Penjaga') {
+                rec.parentName = document.getElementById('editPibksParent').value;
+                rec.childName = document.getElementById('editPibksChild').value;
+                rec.kelas = document.getElementById('editPibksKelas').value;
+                rec.phone = document.getElementById('editPibksPhone').value;
+            } else if (rec.kategori === 'Guru / AKP') {
+                rec.name = document.getElementById('editPibksGuru').value;
+            } else if (rec.kategori === 'Khidmat Sokongan') {
+                rec.agensi = document.getElementById('editPibksAgensi').value;
+                rec.wakilNames = document.getElementById('editPibksWakil').value.split(',').map(s => s.trim()).filter(s => s);
+            } else if (rec.kategori === 'Murid') {
+                rec.nama = document.getElementById('editPibksMurid').value;
+                rec.kelas = document.getElementById('editPibksKelasMurid').value;
+            }
+            
+            const updatedKehadiran = [...prog.kehadiran];
+            updatedKehadiran[origIdx] = rec;
+            
+            try {
+                await updateDoc(doc(colProgram, progId), { kehadiran: updatedKehadiran });
+                window.closeEditPibksModal();
+                window.showToast("Rekod kehadiran berjaya dikemaskini.");
+            } catch(err) { console.error(err); window.showToast("Ralat kemaskini rekod.", true); }
+            
+            btn.innerHTML = originalText; btn.disabled = false;
         };
 
         // AJK Modals
