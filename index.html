@@ -63,11 +63,27 @@
     </header>
 
     <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 relative">
-        <div id="syncStatus" class="absolute top-0 right-4 md:right-6 bg-blue-100 text-blue-700 text-[10px] px-2 py-1 rounded-b-lg flex items-center gap-1">
+        <div id="syncStatus" class="absolute top-0 right-4 md:right-6 bg-blue-100 text-blue-700 text-[10px] px-2 py-1 rounded-b-lg flex items-center gap-1 z-10">
             <i class="fa-solid fa-cloud-arrow-down fa-fade"></i> Menyambung ke Pelayan...
         </div>
 
         <section id="section-utama" class="space-y-6 tab-content mt-4">
+            
+            <!-- TAMBAHAN: WIDGET KAUNTER PELAWAT -->
+            <div class="flex justify-end pt-2">
+                <div class="bg-white border border-slate-200 shadow-sm rounded-xl px-4 py-2 flex items-center gap-4 text-xs font-semibold text-slate-600">
+                    <div class="flex flex-col items-center">
+                        <span class="text-[9px] text-slate-400 uppercase tracking-wider">Pelawat Hari Ini</span>
+                        <span id="countToday" class="text-blue-600 font-bold text-base">0</span>
+                    </div>
+                    <div class="w-px h-8 bg-slate-200"></div>
+                    <div class="flex flex-col items-center">
+                        <span class="text-[9px] text-slate-400 uppercase tracking-wider">Jumlah Pelawat</span>
+                        <span id="countTotal" class="text-indigo-600 font-bold text-base">0</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="bg-gradient-to-r from-blue-800 to-indigo-900 rounded-2xl p-6 md:p-10 text-white shadow-xl relative overflow-hidden">
                 <div class="absolute right-0 bottom-0 opacity-10 translate-x-10 translate-y-10">
                     <i class="fa-solid fa-hands-holding-child text-9xl"></i>
@@ -146,7 +162,7 @@
                     <p class="text-sm text-slate-500">Rekod visual sumbangan dan aktiviti PIBG</p>
                 </div>
                 <button onclick="openAddGaleriModal()" id="btnTambahGaleri" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow transition items-center gap-2">
-                    <i class="fa-solid fa-link"></i> Tambah Sumbangan
+                    <i class="fa-solid fa-upload"></i> Tambah Sumbangan
                 </button>
             </div>
             <div id="galeriGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
@@ -159,7 +175,7 @@
                     <p class="text-sm text-slate-500">Muat turun laporan aktiviti dan kewangan PDF PIBG</p>
                 </div>
                 <button onclick="openAddLaporanModal()" id="btnTambahLaporan" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow transition items-center gap-2">
-                    <i class="fa-solid fa-link"></i> Tambah Laporan
+                    <i class="fa-solid fa-upload"></i> Tambah Laporan
                 </button>
             </div>
             <div id="laporanGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
@@ -218,7 +234,7 @@
         </div>
     </div>
 
-    <!-- MODAL: TAMBAH AJK -->
+    <!-- MODAL: TAMBAH AJK (FILE UPLOAD) -->
     <div id="ajkModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
             <button onclick="closeAddAjkModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -241,9 +257,9 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Pautan Gambar (URL)</label>
-                    <input type="url" id="ajkImgUrl" placeholder="https://..." class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
-                    <p class="text-[10px] text-slate-500 mt-1">Kosongkan jika tiada gambar. Sistem akan papar ikon lalai.</p>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Gambar dari Peranti (Pilihan)</label>
+                    <input type="file" id="ajkImgFile" accept="image/*" class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 bg-slate-50">
+                    <p class="text-[10px] text-slate-500 mt-1">Biarkan kosong jika tiada gambar. Sistem akan memaparkan ikon lalai.</p>
                 </div>
                 <div class="flex justify-end gap-3 pt-2">
                     <button type="button" onclick="closeAddAjkModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-sm font-medium">Batal</button>
@@ -253,48 +269,48 @@
         </div>
     </div>
 
-    <!-- MODAL: TAMBAH SUMBANGAN / GALERI (URL ONLY) -->
+    <!-- MODAL: TAMBAH SUMBANGAN / GALERI (FILE UPLOAD) -->
     <div id="galeriModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
             <button onclick="closeAddGaleriModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
-            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-link text-blue-600"></i> Pautan Gambar Sumbangan</h3>
+            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-upload text-blue-600"></i> Muat Naik Gambar Sumbangan</h3>
             <form onsubmit="saveGaleri(event)" class="space-y-4">
                 <input type="text" id="galeriTitle" placeholder="Tajuk Sumbangan" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
                 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Pautan Gambar (URL)</label>
-                    <input type="url" id="galeriImgUrl" placeholder="Cth: https://pautan-gambar.com/img.jpg" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Gambar dari Peranti</label>
+                    <input type="file" id="galeriImgFile" accept="image/*" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 bg-slate-50">
                 </div>
 
                 <textarea id="galeriCaption" rows="3" placeholder="Keterangan / Caption Penuh" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"></textarea>
                 
                 <div class="flex justify-end gap-3 pt-2">
                     <button type="button" onclick="closeAddGaleriModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-sm font-medium">Batal</button>
-                    <button type="submit" id="btnSubmitGaleri" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center gap-2">Simpan Pautan</button>
+                    <button type="submit" id="btnSubmitGaleri" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center gap-2">Muat Naik Gambar</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL: TAMBAH LAPORAN PDF (URL ONLY) -->
+    <!-- MODAL: TAMBAH LAPORAN PDF (FILE UPLOAD) -->
     <div id="laporanModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
             <button onclick="closeAddLaporanModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
-            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-link text-red-600"></i> Pautan Laporan PDF</h3>
+            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-upload text-red-600"></i> Muat Naik Laporan PDF</h3>
             <form onsubmit="saveLaporan(event)" class="space-y-4">
                 <input type="text" id="laporanTitle" placeholder="Tajuk Laporan" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
                 <input type="text" id="laporanDate" placeholder="Tarikh / Sesi (Cth: 15 Jan 2026)" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
                 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Pautan PDF (URL)</label>
-                    <input type="url" id="laporanPdfUrl" placeholder="Cth: https://pautan-laporan.com/file.pdf" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Fail PDF dari Peranti</label>
+                    <input type="file" id="laporanPdfFile" accept="application/pdf" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 bg-slate-50">
                 </div>
 
                 <textarea id="laporanCaption" rows="2" placeholder="Ringkasan kandungan..." required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"></textarea>
                 
                 <div class="flex justify-end gap-3 pt-2">
                     <button type="button" onclick="closeAddLaporanModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-sm font-medium">Batal</button>
-                    <button type="submit" id="btnSubmitLaporan" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center gap-2">Simpan Pautan</button>
+                    <button type="submit" id="btnSubmitLaporan" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center gap-2">Muat Naik PDF</button>
                 </div>
             </form>
         </div>
@@ -380,7 +396,12 @@
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Hubungan</label>
                             <select id="attRelation" class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 bg-slate-50">
-                                <option value="Bapa">Bapa</option><option value="Ibu">Ibu</option><option value="Penjaga">Penjaga</option><option value="Lain-lain">Lain-lain</option>
+                                <option value="Bapa">Bapa</option>
+                                <option value="Ibu">Ibu</option>
+                                <option value="Penjaga">Penjaga</option>
+                                <option value="Keluarga Guru">Keluarga Guru</option>
+                                <option value="Jemputan">Jemputan</option>
+                                <option value="Lain-lain">Lain-lain</option>
                             </select>
                         </div>
                         <div>
@@ -489,7 +510,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // TAMBAHAN: Import Firebase Storage untuk sistem Upload Gambar/PDF
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyB8f2A2Wvs7cDEodgzzhMJbSgBEehVDoYw",
@@ -504,6 +527,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const storage = getStorage(app); // Init Storage
 
         const BASE_PATH = 'artifacts/pibg_skpk_miri_live/public/data';
         const colAjk = collection(db, BASE_PATH, 'ajk');
@@ -521,24 +545,21 @@
         window.csvDataGuru = []; 
         window.currentProgramMuridId = null;
 
-        // Init & Realtime Listeners (DIBAIKI UNTUK HALANG ADMIN PALSU)
         async function initFirebase() {
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     if (!window._listenersAttached) {
                         setupRealtimeListeners();
+                        initVisitorCounter(); // Panggil Kaunter Pelawat
                         window._listenersAttached = true;
                     }
                     document.getElementById('syncStatus').innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Live Tersambung';
-                    document.getElementById('syncStatus').className = 'absolute top-0 right-4 md:right-6 bg-emerald-100 text-emerald-700 text-[10px] px-2 py-1 rounded-b-lg flex items-center gap-1 font-bold';
+                    document.getElementById('syncStatus').className = 'absolute top-0 right-4 md:right-6 bg-emerald-100 text-emerald-700 text-[10px] px-2 py-1 rounded-b-lg flex items-center gap-1 font-bold z-10';
                     
-                    // Semak jika bukan Anonymous (bermakna Admin log masuk Email)
                     if (user.isAnonymous === false) {
                         window.appData.isAdmin = true;
                         localStorage.setItem('pibg_skpk_admin', 'true');
                     } else {
-                        // Jika Anonymous, reset status Admin sekiranya wujud di localStorage 
-                        // Ini membaiki isu 'Optimistic UI' (Gagal Upload di Peranti Lain)
                         window.appData.isAdmin = false;
                         localStorage.removeItem('pibg_skpk_admin');
                     }
@@ -548,10 +569,53 @@
                     catch (error) {
                         console.error("Firebase Auth Error:", error);
                         document.getElementById('syncStatus').innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Ralat Penyambungan';
-                        document.getElementById('syncStatus').className = 'absolute top-0 right-4 md:right-6 bg-red-100 text-red-700 text-[10px] px-2 py-1 rounded-b-lg flex items-center gap-1 font-bold';
+                        document.getElementById('syncStatus').className = 'absolute top-0 right-4 md:right-6 bg-red-100 text-red-700 text-[10px] px-2 py-1 rounded-b-lg flex items-center gap-1 font-bold z-10';
                     }
                 }
             });
+        }
+
+        // FUNGSI KAUNTER PELAWAT (MEMBACA & MENULIS)
+        async function initVisitorCounter() {
+            const docStatistik = doc(db, BASE_PATH, 'statistik/pelawat');
+            const todayStr = new Date().toLocaleDateString('ms-MY', { timeZone: 'Asia/Kuala_Lumpur' });
+            const storageKey = 'pibg_visited_' + todayStr;
+
+            // 1. Dengar perubahan data (Realtime UI Update)
+            onSnapshot(docStatistik, (snap) => {
+                if(snap.exists()) {
+                    const data = snap.data();
+                    const displayToday = data.date === todayStr ? data.todayCount : 0;
+                    document.getElementById('countTotal').innerText = data.total || 0;
+                    document.getElementById('countToday').innerText = displayToday;
+                }
+            }, (error) => {
+                console.log("Ralat membaca data pelawat:", error);
+            });
+
+            // 2. Tambah rekod pelawat jika mereka belum melawat hari ini
+            if (!localStorage.getItem(storageKey)) {
+                try {
+                    const snap = await getDoc(docStatistik);
+                    let newData = { total: 1, todayCount: 1, date: todayStr };
+                    
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        newData.total = (data.total || 0) + 1;
+                        if (data.date === todayStr) {
+                            newData.todayCount = (data.todayCount || 0) + 1;
+                        } else {
+                            newData.todayCount = 1; // Reset ke 1 untuk hari yang baru
+                        }
+                    }
+                    
+                    // Gunakan merge:true supaya tidak overwrite field lain secara tak sengaja
+                    await setDoc(docStatistik, newData, { merge: true });
+                    localStorage.setItem(storageKey, 'true'); // Tanda sudah dilawati hari ini
+                } catch (e) {
+                    console.log("Ralat mengemaskini pelawat. Pastikan Firestore rules membenarkan penulisan.", e);
+                }
+            }
         }
 
         function setupRealtimeListeners() {
@@ -590,7 +654,6 @@
         }
 
         window.fetchAllCSV = async function() {
-            // Fetch Murid
             try {
                 const resMurid = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vQFsuZPA_3aQ5EVdcj9e9GRUOyMbN7XMOT_eGCtSo-SOE4jtuAtY8DU-aMCPuuSbSdH5xELvxRWAPI9/pub?output=csv');
                 const textMurid = await resMurid.text();
@@ -637,7 +700,6 @@
                 }
             } catch (err) {}
 
-            // Fetch Guru
             try {
                 const resGuru = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vSdF191iBW-AeowPV7V7Y8cOtViagbtuIkf4GivqTWFpxApaA9K9EuIcD5cot664hNH8vcHqOsxvJU2/pub?output=csv');
                 const textGuru = await resGuru.text();
@@ -679,7 +741,6 @@
             setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
         };
 
-        // Admin Auth
         window.openAdminModal = () => {
             if (window.appData.isAdmin) return window.showToast("Anda sudah berada dalam Mod Admin!");
             document.getElementById('adminModal').classList.remove('hidden');
@@ -751,13 +812,33 @@
 
         window.renderCarta = () => {
             if (window.appData.ajk.length === 0) return document.getElementById('cartaContainer').innerHTML = `<div class="col-span-full text-center py-10 text-slate-400 text-sm">Tiada senarai AJK didaftarkan.</div>`;
+            
+            // FUNGSI RANKING: Untuk menyusun jawatan AJK mengikut hierarki (1 Paling Tinggi)
+            const getRank = (jawatan) => {
+                if(!jawatan) return 99;
+                let j = jawatan.toLowerCase();
+                if (j.includes("penasihat") || j.includes("guru besar")) return 1;
+                if (j.includes("ydp") || (j.includes("yang dipertua") && !j.includes("naib"))) return 2;
+                if (j.includes("nydp") || j.includes("naib yang dipertua") || j.includes("timbalan")) return 3;
+                if (j.includes("setiausaha") && !j.includes("penolong") && !j.includes("naib")) return 4;
+                if (j.includes("setiausaha") && (j.includes("penolong") || j.includes("naib"))) return 5;
+                if (j.includes("bendahari") && !j.includes("penolong") && !j.includes("naib")) return 6;
+                if (j.includes("bendahari") && (j.includes("penolong") || j.includes("naib"))) return 7;
+                if (j.includes("ajk") || j.includes("ahli jawatankuasa")) return 8;
+                if (j.includes("juru audit") || j.includes("juruaudit")) return 9;
+                return 10; // Lain-lain
+            };
+
+            // Salin array dan susun (sort) mengikut ranking yang telah ditetapkan
+            const sortedAjk = [...window.appData.ajk].sort((a, b) => getRank(a.jawatan) - getRank(b.jawatan));
+
             let html = '';
-            window.appData.ajk.forEach(item => {
+            sortedAjk.forEach(item => {
                 html += `
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
                         <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-800 font-bold flex items-center justify-center text-lg overflow-hidden shrink-0 border border-blue-100">
-                                ${item.imgUrl ? `<img src="${item.imgUrl}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><i class="fa-solid fa-user-tie hidden"></i>` : `<i class="fa-solid fa-user-tie"></i>`}
+                            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-800 font-bold flex items-center justify-center text-lg overflow-hidden shrink-0 border border-blue-100 relative">
+                                ${item.imgUrl ? `<img src="${item.imgUrl}" class="w-full h-full object-cover z-10" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><i class="fa-solid fa-user-tie hidden absolute"></i>` : `<i class="fa-solid fa-user-tie"></i>`}
                             </div>
                             <div>
                                 <span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-semibold">${item.jawatan}</span>
@@ -802,7 +883,6 @@
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col relative group">
                         ${window.appData.isAdmin ? `<button onclick="deleteLaporan('${item.id}')" class="absolute top-2 right-2 z-10 bg-red-600 hover:bg-red-700 text-white w-8 h-8 rounded-full flex items-center justify-center shadow text-xs"><i class="fa-solid fa-trash"></i></button>` : ''}
                         <div class="h-40 bg-slate-100 flex items-center justify-center relative overflow-hidden border-b border-slate-200">
-                            <!-- KANVAS UNTUK PDF THUMBNAIL -->
                             <canvas id="pdf-canvas-${item.id}" class="w-full h-full object-cover hidden"></canvas>
                             <i id="pdf-icon-${item.id}" class="fa-solid fa-file-pdf text-7xl text-red-300 group-hover:scale-110 group-hover:text-red-400 transition duration-300"></i>
                         </div>
@@ -820,7 +900,6 @@
             });
             grid.innerHTML = html;
 
-            // FUNGSI JANA THUMBNAIL PDF MENGGUNAKAN PDF.JS
             if (typeof pdfjsLib !== 'undefined') {
                 window.appData.laporan.forEach(item => {
                     if (item.pdfUrl) {
@@ -836,9 +915,9 @@
                             canvas.height = viewport.height;
                             page.render({ canvasContext: context, viewport: viewport }).promise.then(() => {
                                 canvas.classList.remove('hidden');
-                                if(icon) icon.classList.add('hidden'); // Sembunyi ikon jika PDF berjaya dimuat
+                                if(icon) icon.classList.add('hidden');
                             });
-                        }).catch(err => console.log('Gagal menjana thumbnail PDF:', err));
+                        }).catch(err => console.log('Gagal menjana thumbnail PDF atau disekat oleh pelayan (CORS).', err));
                     }
                 });
             }
@@ -880,7 +959,6 @@
             let finalHtml = '';
             window.appData.program.forEach((prog, index) => {
                 const arr = prog.kehadiran || [];
-                // MAP array beserta Original Index untuk memudahkan Edit & Delete
                 const arrWithIndex = arr.map((item, origIdx) => ({...item, origIdx}));
 
                 const catIbuBapa = arrWithIndex.filter(x => x.kategori === 'Ibu Bapa / Penjaga');
@@ -889,7 +967,6 @@
                 const catMurid = arrWithIndex.filter(x => x.kategori === 'Murid');
                 const total = arr.length;
 
-                // Fungsi Pembantu Butang Tindakan Admin
                 const actTh = window.appData.isAdmin ? `<th class="pb-2 text-right pl-4">Tindakan</th>` : ``;
                 const actTd = (progId, origIdx) => window.appData.isAdmin ? 
                     `<td class="py-2 text-right pl-4">
@@ -952,13 +1029,12 @@
             else { content.classList.add('hidden'); icon.classList.remove('rotate-180'); }
         };
 
-        // FUNGSI KEMASKINI & PADAM REKOD PIBKS OLEH ADMIN
         window.deletePibksRec = (progId, origIdx) => {
             window.openConfirmModal("Padam rekod kehadiran ini dari senarai?", async () => {
                 const prog = window.appData.program.find(p => p.id === progId);
                 if (!prog) return;
                 const updatedKehadiran = [...prog.kehadiran];
-                updatedKehadiran.splice(origIdx, 1); // Buang array pada index tersebut
+                updatedKehadiran.splice(origIdx, 1);
                 try {
                     await updateDoc(doc(colProgram, progId), { kehadiran: updatedKehadiran });
                     window.showToast("Rekod kehadiran berjaya dipadam.");
@@ -1049,26 +1125,42 @@
             btn.innerHTML = originalText; btn.disabled = false;
         };
 
-        // AJK Modals
-        window.openAddAjkModal = () => document.getElementById('ajkModal').classList.remove('hidden');
+        async function uploadFileToStorage(file, folderName) {
+            try {
+                const storageRef = ref(storage, folderName + '/' + Date.now() + '_' + file.name);
+                await uploadBytes(storageRef, file);
+                return await getDownloadURL(storageRef);
+            } catch (error) {
+                console.error("Ralat memuat naik fail:", error);
+                throw error;
+            }
+        }
+
+        window.openAddAjkModal = () => { document.getElementById('ajkImgFile').value = ''; document.getElementById('ajkModal').classList.remove('hidden'); };
         window.closeAddAjkModal = () => { document.getElementById('ajkModal').classList.add('hidden'); };
         window.saveAjk = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnSubmitAjk');
             const originalText = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`; btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memuat Naik...`; btn.disabled = true;
             try {
+                let downloadUrl = "";
+                const fileInput = document.getElementById('ajkImgFile');
+                if (fileInput.files.length > 0) {
+                    downloadUrl = await uploadFileToStorage(fileInput.files[0], 'ajk_images');
+                }
+
                 const newDoc = doc(colAjk);
                 await setDoc(newDoc, {
                     nama: document.getElementById('ajkNama').value,
                     jawatan: document.getElementById('ajkJawatan').value,
                     kategori: document.getElementById('ajkKategori').value,
-                    imgUrl: document.getElementById('ajkImgUrl').value,
+                    imgUrl: downloadUrl,
                     timestamp: Date.now()
                 });
                 window.closeAddAjkModal(); window.showToast("AJK berjaya ditambah!");
-                document.getElementById('ajkNama').value = ''; document.getElementById('ajkJawatan').value = ''; document.getElementById('ajkImgUrl').value = '';
-            } catch(e) { console.error(e); window.showToast("Gagal menambah AJK. Pastikan anda Admin.", true); window.logoutAdmin(); }
+                document.getElementById('ajkNama').value = ''; document.getElementById('ajkJawatan').value = '';
+            } catch(e) { console.error(e); window.showToast("Ralat muat naik. Semak Storage Rules.", true); }
             btn.innerHTML = originalText; btn.disabled = false;
         };
         window.deleteAjk = (id) => { 
@@ -1077,20 +1169,25 @@
             }); 
         };
 
-        // Galeri Modals (URL)
-        window.openAddGaleriModal = () => document.getElementById('galeriModal').classList.remove('hidden');
+        window.openAddGaleriModal = () => { document.getElementById('galeriImgFile').value = ''; document.getElementById('galeriModal').classList.remove('hidden'); };
         window.closeAddGaleriModal = () => { document.getElementById('galeriModal').classList.add('hidden'); };
         window.saveGaleri = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnSubmitGaleri');
             const originalText = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`; btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memuat Naik...`; btn.disabled = true;
             try {
+                let downloadUrl = "";
+                const fileInput = document.getElementById('galeriImgFile');
+                if (fileInput.files.length > 0) {
+                    downloadUrl = await uploadFileToStorage(fileInput.files[0], 'galeri_images');
+                }
+
                 const newDoc = doc(colGaleri);
-                await setDoc(newDoc, { title: document.getElementById('galeriTitle').value, imgUrl: document.getElementById('galeriImgUrl').value, caption: document.getElementById('galeriCaption').value, timestamp: Date.now() });
-                window.closeAddGaleriModal(); window.showToast("Gambar berjaya ditambah!");
-                document.getElementById('galeriTitle').value = ''; document.getElementById('galeriImgUrl').value = ''; document.getElementById('galeriCaption').value = '';
-            } catch(e) { console.error(e); window.showToast("Ralat menyimpan pautan.", true); window.logoutAdmin(); }
+                await setDoc(newDoc, { title: document.getElementById('galeriTitle').value, imgUrl: downloadUrl, caption: document.getElementById('galeriCaption').value, timestamp: Date.now() });
+                window.closeAddGaleriModal(); window.showToast("Gambar berjaya dimuat naik!");
+                document.getElementById('galeriTitle').value = ''; document.getElementById('galeriCaption').value = '';
+            } catch(e) { console.error(e); window.showToast("Ralat muat naik gambar. Semak Storage Rules.", true); }
             btn.innerHTML = originalText; btn.disabled = false;
         };
         window.deleteGaleri = (id) => { 
@@ -1099,20 +1196,25 @@
             }); 
         };
 
-        // Laporan Modals (URL)
-        window.openAddLaporanModal = () => document.getElementById('laporanModal').classList.remove('hidden');
+        window.openAddLaporanModal = () => { document.getElementById('laporanPdfFile').value = ''; document.getElementById('laporanModal').classList.remove('hidden'); };
         window.closeAddLaporanModal = () => { document.getElementById('laporanModal').classList.add('hidden'); };
         window.saveLaporan = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnSubmitLaporan');
             const originalText = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`; btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memuat Naik...`; btn.disabled = true;
             try {
+                let downloadUrl = "";
+                const fileInput = document.getElementById('laporanPdfFile');
+                if (fileInput.files.length > 0) {
+                    downloadUrl = await uploadFileToStorage(fileInput.files[0], 'laporan_pdf');
+                }
+
                 const newDoc = doc(colLaporan);
-                await setDoc(newDoc, { title: document.getElementById('laporanTitle').value, date: document.getElementById('laporanDate').value, pdfUrl: document.getElementById('laporanPdfUrl').value, caption: document.getElementById('laporanCaption').value, timestamp: Date.now() });
-                window.closeAddLaporanModal(); window.showToast("Laporan PDF berjaya ditambah!");
-                document.getElementById('laporanTitle').value=''; document.getElementById('laporanDate').value=''; document.getElementById('laporanPdfUrl').value=''; document.getElementById('laporanCaption').value='';
-            } catch(e) { console.error(e); window.showToast("Ralat menyimpan pautan.", true); window.logoutAdmin(); }
+                await setDoc(newDoc, { title: document.getElementById('laporanTitle').value, date: document.getElementById('laporanDate').value, pdfUrl: downloadUrl, caption: document.getElementById('laporanCaption').value, timestamp: Date.now() });
+                window.closeAddLaporanModal(); window.showToast("Laporan PDF berjaya dimuat naik!");
+                document.getElementById('laporanTitle').value=''; document.getElementById('laporanDate').value=''; document.getElementById('laporanCaption').value='';
+            } catch(e) { console.error(e); window.showToast("Ralat muat naik PDF. Semak Storage Rules.", true); }
             btn.innerHTML = originalText; btn.disabled = false;
         };
         window.deleteLaporan = (id) => { 
@@ -1121,11 +1223,9 @@
             }); 
         };
 
-        // Program Modals
         window.openAddProgramModal = () => document.getElementById('programModal').classList.remove('hidden');
         window.closeAddProgramModal = () => document.getElementById('programModal').classList.add('hidden');
         
-        // DIBAIKI: Tambah Async / Await untuk mengesan jika Pelayan menolak kemasukan kerana Admin palsu
         window.saveProgram = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnSubmitProgram');
@@ -1145,14 +1245,13 @@
                 window.closeAddProgramModal(); 
                 window.showToast("Program berjaya ditambah!");
                 
-                // Clear Form
                 document.getElementById('progName').value = '';
                 document.getElementById('progDate').value = '';
                 document.getElementById('progDesc').value = '';
             } catch(e) {
                 console.error(e);
                 window.showToast("Gagal! Anda perlu log masuk semula sebagai Admin.", true);
-                window.logoutAdmin(); // Buang status admin di browser kerana ianya tidak sah
+                window.logoutAdmin();
             }
             btn.innerHTML = originalText; btn.disabled = false;
         };
@@ -1163,7 +1262,6 @@
             }); 
         };
 
-        // Attendance (LOCKED)
         window.openAttendanceModal = (progId) => {
             const prog = window.appData.program.find(p => p.id === progId);
             if (!prog) return;
