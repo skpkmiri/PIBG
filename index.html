@@ -1021,15 +1021,96 @@
                             </div>
                         </button>
                         <div id="pibks-content-${index}" class="hidden pt-4 mt-4 border-t border-slate-100">
+                            <!-- BUTANG CETAK PDF -->
+                            <div class="flex justify-end mb-4">
+                                <button onclick="printPibks('${prog.id}')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow transition flex items-center gap-2">
+                                    <i class="fa-solid fa-file-pdf"></i> Jana PDF / Cetak
+                                </button>
+                            </div>
+                            
                             ${wrapDetails("1. Guru / AKP", catGuru.length, htmlGuru)}
                             ${wrapDetails("2. Khidmat Sokongan / Agensi", catSokongan.length, htmlSokongan)}
-                            ${wrapDetails("3. Ibu Bapa / Penjaga & Lain-lain", catIbuBapa.length, htmlIbuBapa)}
+                            ${wrapDetails("3. Ibu Bapa / Penjaga", catIbuBapa.length, htmlIbuBapa)}
                             ${wrapDetails("4. Murid", catMurid.length, htmlMurid)}
                         </div>
                     </div>
                 `;
             });
             container.innerHTML = finalHtml;
+        };
+
+        // FUNGSI MENJANA FORMAT PDF BERSUSUN
+        window.printPibks = (progId) => {
+            const prog = window.appData.program.find(p => p.id === progId);
+            if (!prog) return;
+
+            const arr = prog.kehadiran || [];
+            
+            // Tapis data mengikut kategori (termasuk menangkap rekod lama yang tiada kategori)
+            const catIbuBapa = arr.filter(x => x.kategori === 'Ibu Bapa / Penjaga' || !x.kategori); 
+            const catGuru = arr.filter(x => x.kategori === 'Guru / AKP');
+            const catSokongan = arr.filter(x => x.kategori === 'Khidmat Sokongan');
+            const catMurid = arr.filter(x => x.kategori === 'Murid');
+
+            // Bina struktur HTML khusus untuk format A4 PDF
+            let html = `
+            <!DOCTYPE html>
+            <html lang="ms">
+            <head>
+                <meta charset="UTF-8">
+                <title>Kehadiran_${prog.nama}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
+                    .header-container { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; }
+                    h2 { margin-bottom: 5px; color: #1e3a8a; text-transform: uppercase; font-size: 18px; }
+                    p.subtitle { color: #555; margin-top: 0; font-size: 14px; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 12px; }
+                    th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; }
+                    th { background-color: #f8fafc; font-weight: bold; color: #1e293b; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    tr:nth-child(even) { background-color: #f9fafb; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    .category-title { font-weight: bold; font-size: 14px; margin-bottom: 10px; color: #0f172a; background: #e2e8f0; padding: 5px 10px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    @media print {
+                        @page { margin: 1.5cm; size: A4 portrait; }
+                        thead { display: table-header-group; }
+                        tr { page-break-inside: avoid; }
+                        button { display: none; } /* Sembunyikan butang ketika cetak */
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header-container">
+                    <h2>REKOD KEHADIRAN PROGRAM PIBG</h2>
+                    <p class="subtitle"><strong>${prog.nama}</strong><br>Tarikh: ${prog.tarikh} (${prog.hari}) | Jumlah Seluruh Kehadiran: ${arr.length} orang</p>
+                </div>
+            `;
+
+            const makeTable = (title, data, columns, rowMapper) => {
+                if(!data || data.length === 0) return '';
+                let ths = columns.map(c => `<th>${c}</th>`).join('');
+                let trs = data.map((row, i) => `<tr><td>${i+1}</td>${rowMapper(row)}</tr>`).join('');
+                return `<div class="category-title">${title} (${data.length} Hadir)</div>
+                        <table><thead><tr><th style="width:40px;">Bil</th>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
+            };
+
+            html += makeTable("1. Guru / AKP", catGuru, ["Nama Guru / AKP", "Masa Direkodkan"], r => `<td>${r.name || '-'}</td><td>${r.time || '-'}</td>`);
+            html += makeTable("2. Khidmat Sokongan / Agensi", catSokongan, ["Nama Agensi", "Wakil Hadir", "Masa Direkodkan"], r => `<td>${r.agensi || '-'}</td><td>${(r.wakilNames || []).join(', ') || '-'}</td><td>${r.time || '-'}</td>`);
+            html += makeTable("3. Ibu Bapa / Penjaga", catIbuBapa, ["Nama Penjaga", "Nama Murid", "Kelas", "Hubungan", "No. Telefon", "Masa Direkodkan"], r => `<td>${r.parentName || r.nama || r.name || '-'}</td><td>${r.childName || '-'}</td><td>${r.kelas || '-'}</td><td>${r.relation || '-'}</td><td>${r.phone || '-'}</td><td>${r.time || '-'}</td>`);
+            html += makeTable("4. Murid", catMurid, ["Nama Murid", "Kelas", "Masa Direkodkan"], r => `<td>${r.nama || '-'}</td><td>${r.kelas || '-'}</td><td>${r.time || '-'}</td>`);
+
+            html += `
+                <div style="text-align: center; margin-top: 20px;">
+                    <button onclick="window.print()" style="padding: 10px 20px; background-color: #e11d48; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold;">Teruskan Simpan PDF</button>
+                </div>
+            </body></html>`;
+
+            // Buka tetingkap baru (popup) untuk mencetak/simpan PDF
+            let win = window.open('', '_blank');
+            win.document.write(html);
+            win.document.close();
+            win.focus();
+            
+            // Beri masa sejenak untuk gaya (CSS) dimuatkan, kemudian buka arahan cetak
+            setTimeout(() => { win.print(); }, 500);
         };
 
         window.togglePibksDropdown = (index) => {
