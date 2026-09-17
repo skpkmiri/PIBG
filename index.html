@@ -269,6 +269,44 @@
         </div>
     </div>
 
+    <!-- MODAL: KEMASKINI AJK -->
+    <div id="editAjkModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button onclick="closeEditAjkModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-pen-to-square text-amber-500"></i> Kemaskini Maklumat AJK</h3>
+            <form onsubmit="saveEditAjk(event)" class="space-y-4">
+                <input type="hidden" id="editAjkId">
+                <input type="hidden" id="editAjkOldImgUrl">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Penuh</label>
+                    <input type="text" id="editAjkNama" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Jawatan</label>
+                    <input type="text" id="editAjkJawatan" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Kategori</label>
+                    <select id="editAjkKategori" required class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+                        <option value="Pengurusan">Pengurusan</option>
+                        <option value="Guru">Guru</option>
+                        <option value="Ibu Bapa">Ibu Bapa</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Kemaskini Gambar Peranti (Pilihan)</label>
+                    <input type="file" id="editAjkImgFile" accept="image/*" class="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 bg-slate-50">
+                    <p class="text-[10px] text-slate-500 mt-1">Biarkan kosong jika tidak mahu menukar gambar sedia ada.</p>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeEditAjkModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-sm font-medium">Batal</button>
+                    <button type="submit" id="btnSubmitEditAjk" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold flex items-center gap-2">Kemaskini AJK</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL: TAMBAH SUMBANGAN / GALERI (FILE UPLOAD) -->
     <div id="galeriModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
@@ -844,7 +882,11 @@
                                 <p class="text-xs text-slate-500">Kategori: ${item.kategori}</p>
                             </div>
                         </div>
-                        ${window.appData.isAdmin ? `<button onclick="deleteAjk('${item.id}')" class="text-red-500 hover:text-red-700 p-2"><i class="fa-solid fa-trash"></i></button>` : ''}
+                        ${window.appData.isAdmin ? `
+                        <div class="flex items-center gap-1">
+                            <button onclick="editAjk('${item.id}')" class="text-amber-500 hover:text-amber-700 p-2" title="Kemaskini"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="deleteAjk('${item.id}')" class="text-red-500 hover:text-red-700 p-2" title="Padam"><i class="fa-solid fa-trash"></i></button>
+                        </div>` : ''}
                     </div>`;
             });
             document.getElementById('cartaContainer').innerHTML = html;
@@ -1264,6 +1306,43 @@
             window.openConfirmModal("Padam maklumat AJK ini?", () => { 
                 deleteDoc(doc(colAjk, id)).then(() => window.showToast("AJK dipadam.")).catch((e) => { console.error(e); window.showToast("Gagal memadam.", true); window.logoutAdmin(); }); 
             }); 
+        };
+
+        window.editAjk = (id) => {
+            const ajk = window.appData.ajk.find(a => a.id === id);
+            if (!ajk) return;
+            document.getElementById('editAjkId').value = id;
+            document.getElementById('editAjkOldImgUrl').value = ajk.imgUrl || '';
+            document.getElementById('editAjkNama').value = ajk.nama;
+            document.getElementById('editAjkJawatan').value = ajk.jawatan;
+            document.getElementById('editAjkKategori').value = ajk.kategori;
+            document.getElementById('editAjkImgFile').value = ''; 
+            document.getElementById('editAjkModal').classList.remove('hidden');
+        };
+        
+        window.closeEditAjkModal = () => document.getElementById('editAjkModal').classList.add('hidden');
+        
+        window.saveEditAjk = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitEditAjk');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`; btn.disabled = true;
+            try {
+                const id = document.getElementById('editAjkId').value;
+                let downloadUrl = document.getElementById('editAjkOldImgUrl').value;
+                const fileInput = document.getElementById('editAjkImgFile');
+                if (fileInput.files.length > 0) {
+                    downloadUrl = await uploadFileToStorage(fileInput.files[0], 'ajk_images');
+                }
+                await updateDoc(doc(colAjk, id), {
+                    nama: document.getElementById('editAjkNama').value,
+                    jawatan: document.getElementById('editAjkJawatan').value,
+                    kategori: document.getElementById('editAjkKategori').value,
+                    imgUrl: downloadUrl
+                });
+                window.closeEditAjkModal(); window.showToast("Maklumat AJK berjaya dikemaskini!");
+            } catch(e) { console.error(e); window.showToast("Gagal mengemaskini. Sila semak Storage Rules.", true); }
+            finally { btn.innerHTML = originalText; btn.disabled = false; }
         };
 
         window.openAddGaleriModal = () => { document.getElementById('galeriImgFile').value = ''; document.getElementById('galeriModal').classList.remove('hidden'); };
