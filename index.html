@@ -956,7 +956,9 @@
             
             let finalHtml = '';
             window.appData.program.forEach((prog, index) => {
-                const arr = prog.kehadiran || [];
+                // Pastikan dibaca dengan betul walaupun format data berbeza di pelayan
+                const rawKehadiran = prog.kehadiran || [];
+                const arr = Array.isArray(rawKehadiran) ? rawKehadiran : Object.values(rawKehadiran);
                 const arrWithIndex = arr.map((item, origIdx) => ({...item, origIdx}));
 
                 const catIbuBapa = [];
@@ -964,11 +966,10 @@
                 const catSokongan = [];
                 const catMurid = [];
 
-                // PENTING: Pengelasan supaya tiada data terlepas/hilang. 
-                // Jika data lama tidak mempunyai kategori, ia akan masuk ke Ibu Bapa secara default.
                 arrWithIndex.forEach(x => {
+                    // Masukkan rekod lama (yang tiada kategori) ke dalam Ibu Bapa
                     if (x.kategori === 'Guru / AKP') catGuru.push(x);
-                    else if (x.kategori === 'Khidmat Sokongan') catSokongan.push(x);
+                    else if (x.kategori === 'Khidmat Sokongan' || x.kategori === 'Agensi / Khidmat Sokongan') catSokongan.push(x);
                     else if (x.kategori === 'Murid') catMurid.push(x);
                     else catIbuBapa.push(x); 
                 });
@@ -981,8 +982,9 @@
                         <button onclick="deletePibksRec('${progId}', ${origIdx})" class="text-red-500 hover:text-red-700 px-1" title="Padam"><i class="fa-solid fa-trash"></i></button>
                     </td>` : ``;
 
+                // KEMASKINI UX: Tambah atribut "open" jika count > 0 supaya ia automatik terbuka
                 const wrapDetails = (title, count, contentHtml) => `
-                    <details class="group mb-3 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                    <details class="group mb-3 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden" ${count > 0 ? 'open' : ''}>
                         <summary class="flex justify-between items-center font-bold cursor-pointer list-none px-4 py-3 text-sm text-blue-900 bg-blue-50/50 hover:bg-blue-50 transition">
                             <span>${title} (${count})</span>
                             <span class="transition group-open:rotate-180 text-blue-600"><i class="fa-solid fa-chevron-down"></i></span>
@@ -992,8 +994,9 @@
                         </div>
                     </details>`;
 
+                // KEMASKINI BACAAN DATA LAMA: Gunakan fallback (parentName || nama || name) untuk sokong data lama
                 let htmlIbuBapa = !catIbuBapa.length ? `<p class="text-slate-400 italic">Tiada rekod.</p>` : 
-                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Penjaga</th><th class="pb-2 pr-4">Nama Murid</th><th class="pb-2 pr-4">Kelas</th><th class="pb-2">No. Tel</th>${actTh}</tr></thead><tbody class="divide-y divide-slate-50">` + catIbuBapa.map(x => `<tr><td class="py-2 pr-4 font-semibold">${x.parentName || '-'}</td><td class="py-2 pr-4">${x.childName || '-'}</td><td class="py-2 pr-4">${x.kelas || '-'}</td><td class="py-2">${x.phone || '-'}</td>${actTd(prog.id, x.origIdx)}</tr>`).join('') + `</tbody></table></div>`;
+                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Penjaga</th><th class="pb-2 pr-4">Nama Murid</th><th class="pb-2 pr-4">Kelas</th><th class="pb-2">No. Tel</th>${actTh}</tr></thead><tbody class="divide-y divide-slate-50">` + catIbuBapa.map(x => `<tr><td class="py-2 pr-4 font-semibold">${x.parentName || x.nama || x.name || '-'}</td><td class="py-2 pr-4">${x.childName || '-'}</td><td class="py-2 pr-4">${x.kelas || '-'}</td><td class="py-2">${x.phone || '-'}</td>${actTd(prog.id, x.origIdx)}</tr>`).join('') + `</tbody></table></div>`;
                 
                 let htmlGuru = !catGuru.length ? `<p class="text-slate-400 italic">Tiada rekod.</p>` : 
                     `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Guru / AKP</th><th class="pb-2">Masa Direkodkan</th>${actTh}</tr></thead><tbody class="divide-y divide-slate-50">` + catGuru.map(x => `<tr><td class="py-2 pr-4 font-semibold">${x.name || '-'}</td><td class="py-2">${x.time || '-'}</td>${actTd(prog.id, x.origIdx)}</tr>`).join('') + `</tbody></table></div>`;
