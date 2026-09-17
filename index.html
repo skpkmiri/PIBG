@@ -69,7 +69,7 @@
 
         <section id="section-utama" class="space-y-6 tab-content mt-4">
             
-            <!-- TAMBAHAN: WIDGET KAUNTER PELAWAT -->
+            <!-- WIDGET KAUNTER PELAWAT -->
             <div class="flex justify-end pt-2">
                 <div class="bg-white border border-slate-200 shadow-sm rounded-xl px-4 py-2 flex items-center gap-4 text-xs font-semibold text-slate-600">
                     <div class="flex flex-col items-center">
@@ -138,13 +138,6 @@
                         <h3 id="statProgram" class="text-2xl font-bold text-slate-800">0</h3>
                     </div>
                 </div>
-            </div>
-
-            <!-- BUTANG TAMBAHAN: Pulihkan Data (Khusus untuk Admin) -->
-            <div id="restoreDataContainer" class="hidden justify-center mt-10">
-                <button onclick="restoreMockData()" class="bg-slate-200 hover:bg-slate-300 text-slate-600 text-xs px-4 py-2 rounded-xl font-semibold transition border border-slate-300 shadow-sm flex items-center gap-2">
-                    <i class="fa-solid fa-database"></i> Pulihkan Data Asal (Mock Data)
-                </button>
             </div>
         </section>
 
@@ -616,7 +609,6 @@
                         }
                     }
                     
-                    // Gunakan merge:true supaya tidak overwrite field lain secara tak sengaja
                     await setDoc(docStatistik, newData, { merge: true });
                     localStorage.setItem(storageKey, 'true'); // Tanda sudah dilawati hari ini
                 } catch (e) {
@@ -790,18 +782,15 @@
             const statusBadge = document.getElementById('adminStatusBadge');
             const btnToggle = document.getElementById('adminBtnToggle');
             const actions = ['btnTambahAjk', 'btnTambahGaleri', 'btnTambahLaporan', 'btnTambahProgram'];
-            const restoreBtn = document.getElementById('restoreDataContainer');
             
             if (window.appData.isAdmin) {
                 statusBadge.classList.replace('hidden', 'flex');
                 btnToggle.classList.add('hidden');
                 actions.forEach(id => { const el = document.getElementById(id); if(el) { el.classList.remove('hidden'); el.classList.add('flex'); } });
-                if(restoreBtn) restoreBtn.classList.replace('hidden', 'flex');
             } else {
                 statusBadge.classList.replace('flex', 'hidden');
                 btnToggle.classList.remove('hidden');
                 actions.forEach(id => { const el = document.getElementById(id); if(el) { el.classList.add('hidden'); el.classList.remove('flex'); } });
-                if(restoreBtn) restoreBtn.classList.replace('flex', 'hidden');
             }
             window.renderAllStats();
             window.renderCarta(); window.renderGaleri(); window.renderLaporan(); window.renderKehadiranProgram(); window.renderPibks();
@@ -824,7 +813,6 @@
         window.renderCarta = () => {
             if (window.appData.ajk.length === 0) return document.getElementById('cartaContainer').innerHTML = `<div class="col-span-full text-center py-10 text-slate-400 text-sm">Tiada senarai AJK didaftarkan.</div>`;
             
-            // FUNGSI RANKING: Untuk menyusun jawatan AJK mengikut hierarki (1 Paling Tinggi)
             const getRank = (jawatan) => {
                 if(!jawatan) return 99;
                 let j = jawatan.toLowerCase();
@@ -837,10 +825,9 @@
                 if (j.includes("bendahari") && (j.includes("penolong") || j.includes("naib"))) return 7;
                 if (j.includes("ajk") || j.includes("ahli jawatankuasa")) return 8;
                 if (j.includes("juru audit") || j.includes("juruaudit")) return 9;
-                return 10; // Lain-lain
+                return 10;
             };
 
-            // Salin array dan susun (sort) mengikut ranking yang telah ditetapkan
             const sortedAjk = [...window.appData.ajk].sort((a, b) => getRank(a.jawatan) - getRank(b.jawatan));
 
             let html = '';
@@ -970,18 +957,23 @@
             let finalHtml = '';
             window.appData.program.forEach((prog, index) => {
                 const arr = prog.kehadiran || [];
-                const arrWithIndex = arr.map((item, origIdx) => {
-                    // FIX: Jika rekod lama tiada label 'kategori', sistem akan anggap ia sebagai rekod Ibu Bapa secara default
-                    const fallbackKategori = item.kategori ? item.kategori : 'Ibu Bapa / Penjaga';
-                    return {...item, kategori: fallbackKategori, origIdx};
+                const arrWithIndex = arr.map((item, origIdx) => ({...item, origIdx}));
+
+                const catIbuBapa = [];
+                const catGuru = [];
+                const catSokongan = [];
+                const catMurid = [];
+
+                // PENTING: Pengelasan supaya tiada data terlepas/hilang. 
+                // Jika data lama tidak mempunyai kategori, ia akan masuk ke Ibu Bapa secara default.
+                arrWithIndex.forEach(x => {
+                    if (x.kategori === 'Guru / AKP') catGuru.push(x);
+                    else if (x.kategori === 'Khidmat Sokongan') catSokongan.push(x);
+                    else if (x.kategori === 'Murid') catMurid.push(x);
+                    else catIbuBapa.push(x); 
                 });
 
-                const catIbuBapa = arrWithIndex.filter(x => x.kategori === 'Ibu Bapa / Penjaga');
-                const catGuru = arrWithIndex.filter(x => x.kategori === 'Guru / AKP');
-                const catSokongan = arrWithIndex.filter(x => x.kategori === 'Khidmat Sokongan');
-                const catMurid = arrWithIndex.filter(x => x.kategori === 'Murid');
                 const total = arr.length;
-
                 const actTh = window.appData.isAdmin ? `<th class="pb-2 text-right pl-4">Tindakan</th>` : ``;
                 const actTd = (progId, origIdx) => window.appData.isAdmin ? 
                     `<td class="py-2 text-right pl-4">
@@ -1001,16 +993,16 @@
                     </details>`;
 
                 let htmlIbuBapa = !catIbuBapa.length ? `<p class="text-slate-400 italic">Tiada rekod.</p>` : 
-                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Penjaga</th><th class="pb-2 pr-4">Nama Murid</th><th class="pb-2 pr-4">Kelas</th><th class="pb-2">No. Tel</th>${actTh}</tr></thead><tbody class="divide-y divide-slate-50">` + catIbuBapa.map(x => `<tr><td class="py-2 pr-4 font-semibold">${x.parentName}</td><td class="py-2 pr-4">${x.childName}</td><td class="py-2 pr-4">${x.kelas}</td><td class="py-2">${x.phone}</td>${actTd(prog.id, x.origIdx)}</tr>`).join('') + `</tbody></table></div>`;
+                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Penjaga</th><th class="pb-2 pr-4">Nama Murid</th><th class="pb-2 pr-4">Kelas</th><th class="pb-2">No. Tel</th>${actTh}</tr></thead><tbody class="divide-y divide-slate-50">` + catIbuBapa.map(x => `<tr><td class="py-2 pr-4 font-semibold">${x.parentName || '-'}</td><td class="py-2 pr-4">${x.childName || '-'}</td><td class="py-2 pr-4">${x.kelas || '-'}</td><td class="py-2">${x.phone || '-'}</td>${actTd(prog.id, x.origIdx)}</tr>`).join('') + `</tbody></table></div>`;
                 
                 let htmlGuru = !catGuru.length ? `<p class="text-slate-400 italic">Tiada rekod.</p>` : 
-                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Guru / AKP</th><th class="pb-2">Masa Direkodkan</th>${actTh}</tr></thead><tbody class="divide-y divide-slate-50">` + catGuru.map(x => `<tr><td class="py-2 pr-4 font-semibold">${x.name}</td><td class="py-2">${x.time}</td>${actTd(prog.id, x.origIdx)}</tr>`).join('') + `</tbody></table></div>`;
+                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Guru / AKP</th><th class="pb-2">Masa Direkodkan</th>${actTh}</tr></thead><tbody class="divide-y divide-slate-50">` + catGuru.map(x => `<tr><td class="py-2 pr-4 font-semibold">${x.name || '-'}</td><td class="py-2">${x.time || '-'}</td>${actTd(prog.id, x.origIdx)}</tr>`).join('') + `</tbody></table></div>`;
                 
                 let htmlSokongan = !catSokongan.length ? `<p class="text-slate-400 italic">Tiada rekod.</p>` : 
-                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Agensi</th><th class="pb-2">Senarai Wakil Hadir</th>${actTh}</tr></thead><tbody class="divide-y divide-slate-50">` + catSokongan.map(x => `<tr><td class="py-2 pr-4 font-bold text-blue-700">${x.agensi}</td><td class="py-2">${(x.wakilNames || []).join(', ')}</td>${actTd(prog.id, x.origIdx)}</tr>`).join('') + `</tbody></table></div>`;
+                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Agensi</th><th class="pb-2">Senarai Wakil Hadir</th>${actTh}</tr></thead><tbody class="divide-y divide-slate-50">` + catSokongan.map(x => `<tr><td class="py-2 pr-4 font-bold text-blue-700">${x.agensi || '-'}</td><td class="py-2">${(x.wakilNames || []).join(', ') || '-'}</td>${actTd(prog.id, x.origIdx)}</tr>`).join('') + `</tbody></table></div>`;
                 
                 let htmlMurid = !catMurid.length ? `<p class="text-slate-400 italic">Tiada rekod.</p>` : 
-                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Murid</th><th class="pb-2">Kelas</th>${actTh}</tr></thead><tbody class="divide-y divide-slate-50">` + catMurid.map(x => `<tr><td class="py-2 pr-4 font-semibold">${x.nama}</td><td class="py-2">${x.kelas}</td>${actTd(prog.id, x.origIdx)}</tr>`).join('') + `</tbody></table></div>`;
+                    `<div class="overflow-x-auto"><table class="w-full text-left text-[11px] whitespace-nowrap"><thead class="text-slate-500 border-b"><tr><th class="pb-2 pr-4">Nama Murid</th><th class="pb-2">Kelas</th>${actTh}</tr></thead><tbody class="divide-y divide-slate-50">` + catMurid.map(x => `<tr><td class="py-2 pr-4 font-semibold">${x.nama || '-'}</td><td class="py-2">${x.kelas || '-'}</td>${actTd(prog.id, x.origIdx)}</tr>`).join('') + `</tbody></table></div>`;
 
                 finalHtml += `
                     <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -1028,7 +1020,7 @@
                         <div id="pibks-content-${index}" class="hidden pt-4 mt-4 border-t border-slate-100">
                             ${wrapDetails("1. Guru / AKP", catGuru.length, htmlGuru)}
                             ${wrapDetails("2. Khidmat Sokongan / Agensi", catSokongan.length, htmlSokongan)}
-                            ${wrapDetails("3. Ibu Bapa / Penjaga", catIbuBapa.length, htmlIbuBapa)}
+                            ${wrapDetails("3. Ibu Bapa / Penjaga & Lain-lain", catIbuBapa.length, htmlIbuBapa)}
                             ${wrapDetails("4. Murid", catMurid.length, htmlMurid)}
                         </div>
                     </div>
@@ -1062,25 +1054,25 @@
             if (!prog) return;
             const rec = prog.kehadiran[origIdx];
             
-            // FIX untuk membolehkan admin edit data lama yang tiada kategori
-            const fallbackKategori = rec.kategori || 'Ibu Bapa / Penjaga';
-            
             document.getElementById('editPibksProgId').value = progId;
             document.getElementById('editPibksIndex').value = origIdx;
             const container = document.getElementById('editPibksDynamicFields');
             
             let html = '';
+            // Anggap selain Guru, Sokongan, Murid adalah kategori Ibu Bapa (merangkumi Lain-lain/lama)
+            const fallbackKategori = rec.kategori || 'Ibu Bapa / Penjaga';
+            
             if (fallbackKategori === 'Ibu Bapa / Penjaga') {
                 html += `
-                    <div><label class="block text-xs font-semibold text-slate-700 mb-1">Nama Penjaga</label>
+                    <div><label class="block text-xs font-semibold text-slate-700 mb-1">Nama Penjaga / Wakil</label>
                     <input type="text" id="editPibksParent" value="${rec.parentName || ''}" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></div>
-                    <div><label class="block text-xs font-semibold text-slate-700 mb-1">Nama Anak</label>
-                    <input type="text" id="editPibksChild" value="${rec.childName || ''}" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></div>
+                    <div><label class="block text-xs font-semibold text-slate-700 mb-1">Nama Anak / Hubungan</label>
+                    <input type="text" id="editPibksChild" value="${rec.childName || ''}" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></div>
                     <div class="grid grid-cols-2 gap-3">
                         <div><label class="block text-xs font-semibold text-slate-700 mb-1">Kelas</label>
-                        <input type="text" id="editPibksKelas" value="${rec.kelas || ''}" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></div>
+                        <input type="text" id="editPibksKelas" value="${rec.kelas || ''}" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></div>
                         <div><label class="block text-xs font-semibold text-slate-700 mb-1">No. Telefon</label>
-                        <input type="text" id="editPibksPhone" value="${rec.phone || ''}" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></div>
+                        <input type="text" id="editPibksPhone" value="${rec.phone || ''}" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"></div>
                     </div>`;
             } else if (rec.kategori === 'Guru / AKP') {
                 html += `<div><label class="block text-xs font-semibold text-slate-700 mb-1">Nama Guru / AKP</label>
@@ -1115,10 +1107,8 @@
             if (!prog) return;
             
             const rec = { ...prog.kehadiran[origIdx] }; 
-            
-            // FIX: Tambah kategori ke dalam rekod lama secara kekal apabila di-edit
             const fallbackKategori = rec.kategori || 'Ibu Bapa / Penjaga';
-            rec.kategori = fallbackKategori;
+            rec.kategori = fallbackKategori; // Setkan kekal supaya tak hilang lagi
             
             if (fallbackKategori === 'Ibu Bapa / Penjaga') {
                 rec.parentName = document.getElementById('editPibksParent').value;
@@ -1147,6 +1137,7 @@
             btn.innerHTML = originalText; btn.disabled = false;
         };
 
+        // Fungsi Helper untuk muat naik terus ke Storage
         async function uploadFileToStorage(file, folderName) {
             try {
                 const storageRef = ref(storage, folderName + '/' + Date.now() + '_' + file.name);
@@ -1182,8 +1173,8 @@
                 });
                 window.closeAddAjkModal(); window.showToast("AJK berjaya ditambah!");
                 document.getElementById('ajkNama').value = ''; document.getElementById('ajkJawatan').value = '';
-            } catch(e) { console.error(e); window.showToast("Ralat muat naik. Semak Storage Rules.", true); }
-            btn.innerHTML = originalText; btn.disabled = false;
+            } catch(e) { console.error(e); window.showToast("Ralat muat naik. Sila semak Storage Rules.", true); }
+            finally { btn.innerHTML = originalText; btn.disabled = false; }
         };
         window.deleteAjk = (id) => { 
             window.openConfirmModal("Padam maklumat AJK ini?", () => { 
@@ -1210,7 +1201,7 @@
                 window.closeAddGaleriModal(); window.showToast("Gambar berjaya dimuat naik!");
                 document.getElementById('galeriTitle').value = ''; document.getElementById('galeriCaption').value = '';
             } catch(e) { console.error(e); window.showToast("Ralat muat naik gambar. Semak Storage Rules.", true); }
-            btn.innerHTML = originalText; btn.disabled = false;
+            finally { btn.innerHTML = originalText; btn.disabled = false; }
         };
         window.deleteGaleri = (id) => { 
             window.openConfirmModal("Padam gambar ini?", () => { 
@@ -1237,7 +1228,7 @@
                 window.closeAddLaporanModal(); window.showToast("Laporan PDF berjaya dimuat naik!");
                 document.getElementById('laporanTitle').value=''; document.getElementById('laporanDate').value=''; document.getElementById('laporanCaption').value='';
             } catch(e) { console.error(e); window.showToast("Ralat muat naik PDF. Semak Storage Rules.", true); }
-            btn.innerHTML = originalText; btn.disabled = false;
+            finally { btn.innerHTML = originalText; btn.disabled = false; }
         };
         window.deleteLaporan = (id) => { 
             window.openConfirmModal("Padam laporan ini?", () => { 
@@ -1247,7 +1238,6 @@
 
         window.openAddProgramModal = () => document.getElementById('programModal').classList.remove('hidden');
         window.closeAddProgramModal = () => document.getElementById('programModal').classList.add('hidden');
-        
         window.saveProgram = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnSubmitProgram');
@@ -1471,67 +1461,6 @@
             } catch (err) {
                 console.error(err); window.showToast("Gagal menyimpan rekod murid.", true); window.logoutAdmin();
             }
-        };
-
-        // FUNGSI MEMULIHKAN DATA ASAL (MOCK DATA) KE DALAM FIREBASE
-        window.restoreMockData = async () => {
-            if (!confirm("Adakah anda pasti mahu memasukkan semula data contoh (mock data) ke dalam sistem? Tindakan ini akan menambah data baharu ke dalam pangkalan data anda.")) return;
-            
-            const btn = document.querySelector('#restoreDataContainer button');
-            const originalHtml = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memulihkan...`;
-            btn.disabled = true;
-
-            try {
-                // Pulihkan AJK
-                const ajkData = [
-                    { jawatan: "Penasihat", nama: "En. Guru Besar SKPK Miri", kategori: "Pengurusan", imgUrl: "" },
-                    { jawatan: "Yang Dipertua (YDP)", nama: "En. Mohamad Faizal bin Abdullah", kategori: "Ibu Bapa", imgUrl: "" },
-                    { jawatan: "Naib Yang Dipertua (NYDP)", nama: "Pn. Siti Nurhaliza binti Hamid", kategori: "Guru", imgUrl: "" },
-                    { jawatan: "Setiausaha", nama: "Pn. Noraini binti Rahman (Setiausaha Rasmi)", kategori: "Guru", imgUrl: "" },
-                    { jawatan: "Bendahari", nama: "En. David Wong", kategori: "Ibu Bapa", imgUrl: "" },
-                    { jawatan: "AJK Ibu Bapa", nama: "Pn. Sharifah Maznah", kategori: "Ibu Bapa", imgUrl: "" },
-                    { jawatan: "AJK Guru", nama: "En. Rahmat bin Jamil", kategori: "Guru", imgUrl: "" }
-                ];
-                for (let item of ajkData) {
-                    await setDoc(doc(colAjk), {...item, timestamp: Date.now()});
-                }
-                
-                // Pulihkan Galeri
-                const galeriData = [
-                    { title: "Sumbangan Peralatan Terapi Fizikal", imgUrl: "https://images.unsplash.com/photo-1588072432836-e10032774350?auto=format&fit=crop&q=80&w=600", caption: "Pihak PIBG menyampaikan sumbangan alat bantuan mengajar dan alat terapi fizikal kepada murid-murid PPKI SKPK Miri." },
-                    { title: "Gotong-Royong Perdana Ceria OKU", imgUrl: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&q=80&w=600", caption: "Kerjasama erat antara ibu bapa dan guru menceriakan kawasan landskap dan bilik darjah pendidikan khas." },
-                    { title: "Majlis Anugerah Cemerlang & Kasih PIBG", imgUrl: "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&q=80&w=600", caption: "Penyampaian insentif khas kepada murid berkeperluan khas yang menunjukkan peningkatan akademik dan sahsiah terpuji." }
-                ];
-                for (let item of galeriData) {
-                    await setDoc(doc(colGaleri), {...item, timestamp: Date.now()});
-                }
-                
-                // Pulihkan Laporan
-                const laporanData = [
-                    { title: "Laporan Kewangan Tahunan PIBG 2025", date: "10 Disember 2025", pdfUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf", caption: "Penyata akaun bank dan ringkasan kutipan sumbangan sukarela PIBG sepanjang tahun 2025." },
-                    { title: "Minit Mesyuarat Agung PIBG Kali Ke-19", date: "20 Mac 2025", pdfUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf", caption: "Minit mesyuarat rasmi merangkumi usul bajet aktiviti murid dan perancangan prasarana sekolah." }
-                ];
-                for (let item of laporanData) {
-                    await setDoc(doc(colLaporan), {...item, timestamp: Date.now()});
-                }
-                
-                // Pulihkan Program
-                const programData = [
-                    { nama: "Program Motivasi & Keibubapaan Pendidikan Khas", tarikh: "2026-03-25", hari: "Sabtu", deskripsi: "Ceramah khas bersama pakar psikologi kanak-kanak OKU bertempat di Dewan Terbuka SKPK Miri.", kehadiran: [] },
-                    { nama: "Sukaneka Ria PPKI & PIBG 2026", tarikh: "2026-04-12", hari: "Ahad", deskripsi: "Acara sukaneka mesra OKU yang melibatkan penyertaan aktif ibu bapa dan guru.", kehadiran: [] }
-                ];
-                for (let item of programData) {
-                    await setDoc(doc(colProgram), {...item, timestamp: Date.now()});
-                }
-                
-                window.showToast("Data contoh berjaya dipulihkan!");
-            } catch (error) {
-                console.error("Gagal memulihkan data:", error);
-                window.showToast("Gagal memulihkan data. Sila semak Firestore.", true);
-            }
-            btn.innerHTML = originalHtml;
-            btn.disabled = false;
         };
 
         window.onload = async function() {
