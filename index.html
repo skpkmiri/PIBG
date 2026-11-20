@@ -899,11 +899,25 @@
                     let nama = cols.length > 1 && cols[1] ? cols[1] : cols[0];
                     if(nama) window.csvDataGuru.push(nama);
                 }
+
+                // Tambahan nama staf SKPK Miri (mengelakkan pertindihan jika sudah wujud dalam CSV)
+                const tambahanStaf = ["SUHAIMI BIN RAMLI"];
+                tambahanStaf.forEach(staf => {
+                    if (!window.csvDataGuru.some(g => g.trim().toUpperCase() === staf.toUpperCase())) {
+                        window.csvDataGuru.push(staf);
+                    }
+                });
                 
                 let gHtml = '<option value="">-- Sila Pilih Nama Guru / AKP --</option>';
                 window.csvDataGuru.sort().forEach(g => { gHtml += `<option value="${g}">${g}</option>`; });
                 document.getElementById('attGuruSelect').innerHTML = gHtml;
-            } catch(err) {}
+            } catch(err) {
+                // Fallback sekiranya fail CSV gagal dicapai
+                window.csvDataGuru = ["SUHAIMI BIN RAMLI"];
+                let gHtml = '<option value="">-- Sila Pilih Nama Guru / AKP --</option>';
+                window.csvDataGuru.forEach(g => { gHtml += `<option value="${g}">${g}</option>`; });
+                document.getElementById('attGuruSelect').innerHTML = gHtml;
+            }
         };
 
         window.switchTab = function(tabId) {
@@ -912,9 +926,12 @@
                 btn.classList.remove('bg-blue-800', 'text-white');
                 btn.classList.add('text-blue-200', 'hover:bg-blue-900');
             });
-            document.getElementById(`section-${tabId}`).classList.remove('hidden');
+            const targetSection = document.getElementById(`section-${tabId}`);
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+            }
             const activeBtn = document.getElementById(`tab-${tabId}`);
-            if(activeBtn) {
+            if (activeBtn) {
                 activeBtn.classList.add('bg-blue-800', 'text-white');
                 activeBtn.classList.remove('text-blue-200', 'hover:bg-blue-900');
             }
